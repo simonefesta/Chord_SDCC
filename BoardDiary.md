@@ -24,9 +24,9 @@ La chiave K identifica la *risorsa* **contenuta in V**, e K corrisponde al *reso
 
 * **remove(K)**: Rimozione del riferimento di K associato a V.
 
-Come vediamo, è la nostra applicazione distribuita che si interfaccia con la DHT.
+E' la nostra applicazione distribuita che si interfaccia con la DHT.
 
-![Screenshot 2023-05-21 alle 16.16.31.png](/var/folders/_p/3wnzmzzj6q3djg3_fgyjqmb40000gn/T/TemporaryItems/NSIRD_screencaptureui_555j2e/Screenshot%202023-05-21%20alle%2016.16.31.png)
+
 
 Ogni nodo gestisce una porzione **contigua** della DHT. L'ID del nodo e delle risorse sono mappate sullo stesso spazio di indirizzamento.
 L'idea di routing è: "**Data K, la mappo nel GUID del nodo più vicino a K.**"
@@ -40,14 +40,11 @@ Ogni nodo è responsabile delle chiavi tra sè stesso e il nodo *precedente*, as
 La risorsa con chiave *k* è gestita da un nodo avente per identificativo il più piccolo identificativo tale che $id \geq k$. Tale nodo è chiamato il ***successore della chiave k, o succ(k)***.
 Vediamo un veloce esempio.
 
-![Screenshot 2023-05-21 alle 16.31.43.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/Screenshot%202023-05-21%20alle%2016.31.43.png)
-
-
+![1.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/1.png)
 
 Chi gestisce la risorsa 1? Il più piccolo nodo avente $id \geq 1$, quindi partendo da 0 scorro finchè non eccedo 1, e prendo il precedente. In questo caso **succ(1)=1**, perchè il nodo 1 è il primo che è $\geq1$.
 Il successore di 10? scorro finchè non trovo il primo nodo che supera/è uguale la risorsa.
 In questo caso **succ(10)=12**.
-
 
 ### Consistent Hashing in CHORD
 
@@ -58,8 +55,6 @@ E' rilevante perchè, in questa applicazione, la maggior parte delle chiavi non 
 Chord utilizza le **Finger Table** per realizzare il lookup. E' un buon compromesso tra il conoscere tutte la rete (molto veloce, ma troppe info da gestire), o conoscere solo il nodo successivo (meno informazioni, ma più lento, opera in O(N) ).
 La finger table è una lista parziale di nodi progressiva, più vado "lontano" nella tablella, più le informazioni sono vaghe.
 
-
-
 ### Realizzazione di una FINGER TABLE
 
 Essa ha *m righe*, dove *m* sono i bit dedicati ai vari GUID.
@@ -69,7 +64,7 @@ Se $FT_p$ è la tabella del nodo *p*, allora la riga i-esima sarà:$FT_p[i]=succ
 
 
 
-![Screenshot 2023-05-21 alle 17.12.13.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/Screenshot%202023-05-21%20alle%2017.12.13.png)
+![2.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/2.png)
 
 ### Algoritmo di routing di CHORD
 
@@ -80,8 +75,6 @@ Vogliamo mappare la chiave *k* in *succ(k)*, partendo da un nodo *p.*
 - Se $p < k \leq FT_p[1]$, p inoltra la richiesta al suo successore. In pratica la prima riga della FT di p identifica il suo successore. Se vediamo che quella risorsa è di sua competenza, inoltriamo a lui la richiesta.
 
 - Altrimenti, cerco il nodo più lontano *q* di indice *j* che non ecceda la risorsa, ovvero: $FT_p[j] \leq k < FT_p[j+1]$.  Se ad esempio abbiamo nella FT il nodo 2 nella riga "j", e il nodo 4 nella riga "j+1" e la risorsa da cercare ha k=2 oppure k=3, allora tale risorsa sarà gestita dal nodo "2". Altrimenti vado avanti nelle righe.
-
-
 
 ![3.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/3.png)
 
@@ -113,5 +106,3 @@ Per mantenere la finger table aggiornata, periodicamente ogni nodo una procedura
 
 Supponiamo che un nodo crashi, c'è necessità di replicare i dati <K,V>.
 Si creano R repliche, ciascuna delle quali viene memorizzata negli R-1 nodi successori nell'anello. R configurabile. Tuttavia richiede di conoscere successori multipli.
-
-
