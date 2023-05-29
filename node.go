@@ -68,9 +68,16 @@ func (n *Node) Join(ip string, port int) {
 
 	n.Successor = successor
 
+	fmt.Println("Mi sono collegato al nodo ", ip, ":", port)
+
 }
 
 func (n *Node) FindSuccessor(key *big.Int, successor *Node) error {
+	if n.Successor == nil {
+		// Il nodo corrente è l'unico nodo nella rete
+		*successor = *n
+		return nil
+	}
 	if betweenRightInclusive(key, n.ID, n.Successor.ID) {
 		*successor = *n.Successor
 		return nil
