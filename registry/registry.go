@@ -3,6 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
 	"sort"
 )
 
@@ -71,4 +75,15 @@ func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 
 }*/
 
-//TODO: main
+func main() {
+	// Creazione di un nuovo oggetto Registry
+	registry := new(Registry)
+	rpc.Register(registry) //l'oggetto registry viene registrato per consentire la comunicazione RPC.
+	rpc.HandleHTTP()       //La funzione HandleHTTP configura il pacchetto rpc per l'uso con il protocollo HTTP. Ciò consente al server RPC di gestire le richieste e le risposte RPC utilizzando il protocollo HTTP.
+	l, e := net.Listen("tcp", "localhost:1234")
+	if e != nil {
+		log.Fatal("listen error:", e)
+	}
+	http.Serve(l, nil) //avvia un server HTTP che ascolta sul listener l e gestisce le richieste in arrivo utilizzando il gestore predefinito di http.DefaultServeMux.
+
+}
