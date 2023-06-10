@@ -26,8 +26,6 @@ La chiave K identifica la *risorsa* **contenuta in V**, e K corrisponde al *reso
 
 E' la nostra applicazione distribuita che si interfaccia con la DHT.
 
-
-
 Ogni nodo gestisce una porzione **contigua** della DHT. L'ID del nodo e delle risorse sono mappate sullo stesso spazio di indirizzamento.
 L'idea di routing è: "**Data K, la mappo nel GUID del nodo più vicino a K.**"
 
@@ -61,8 +59,6 @@ Essa ha *m righe*, dove *m* sono i bit dedicati ai vari GUID.
 Ad esempio, se m=3, allora posso definire fino ad $2^3=8$ nodi.
 
 Se $FT_p$ è la tabella del nodo *p*, allora la riga i-esima sarà:$FT_p[i]=succ(p+2^{i-1})\;mod \;2^m$, con $i \leq i \leq m$
-
-
 
 ![2.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/2.png)
 
