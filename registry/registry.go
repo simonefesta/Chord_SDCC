@@ -70,7 +70,7 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	return nil
 }
 
-/* TODO: ReturnChordNode
+/* TODO: ReturnChordNode A CHE SERVE?
 func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 
 }*/
