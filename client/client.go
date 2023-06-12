@@ -28,7 +28,7 @@ func main() {
 	for {
 		fmt.Print("Inserisci scelta")
 		fmt.Scanln(&resp) //acquisisco la risposta da tastiera
-		switch resp {
+		switch int(resp) {
 		case 1:
 			fmt.Print("Oggetto da inserire:")
 			scanner := bufio.NewScanner(os.Stdin) //meglio di scanln, se devo acquisire frasi o altro.
