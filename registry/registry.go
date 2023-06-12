@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
 	"sort"
+	"time"
 )
 
 const (
@@ -70,10 +72,28 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	return nil
 }
 
-/* TODO: ReturnChordNode A CHE SERVE?
+/*
+	TODO: ReturnChordNode A CHE SERVE?
+
 func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 
-}*/
+}
+*/
+func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
+	if len(Nodes) == 0 {
+		return errors.New("Non ci sono nodi nell'anello")
+	}
+	keys := make([]int, 0, len(Nodes))
+	for k := range Nodes {
+		keys = append(keys, k)
+	}
+
+	rand.Seed(time.Now().Unix())
+	n := rand.Int() % len(keys)
+	*reply = Nodes[keys[n]]
+
+	return nil
+}
 
 func main() {
 	// Creazione di un nuovo oggetto Registry

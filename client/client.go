@@ -38,31 +38,31 @@ func main() {
 			//devo connettermi per inserire questo oggetto
 			client, err := rpc.DialHTTP("tcp", "localhost:1234")
 			if err != nil {
-				log.Fatal("Errore connessione client", err)
+				log.Fatal("Errore connessione client ", err)
 			}
 			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo "localhost:1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
-			err = client.Call("Registry.FindNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
+			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 			if err != nil {
 				// Gestisci l'errore se si verifica
-				log.Fatal("Errore nella chiamata di metodo RPC:", err)
+				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
 
 			client, err = rpc.DialHTTP("tcp", "localhost:1234")
 			if err != nil {
-				log.Fatal("Errore connessione client", err)
+				log.Fatal("Errore connessione client ", err)
 			}
 
 			err = client.Call("Successor.AddObject", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 			if err != nil {
 				// Gestisci l'errore se si verifica
-				log.Fatal("Errore nella chiamata di metodo RPC:", err)
+				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
 			fmt.Println(result)
-			break
+			//break
 
 			//case2 TODO
 		}

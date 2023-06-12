@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"net/rpc"
+	"os"
 )
 
 type Node struct {
@@ -17,8 +20,8 @@ type Node struct {
 }
 
 type Arg struct { //ciò che passo ai metodi
-	id    int
-	value string
+	Id    int
+	Value string
 }
 
 var node *Node
@@ -33,8 +36,8 @@ func getSuccessorIp(ip string) string {
 
 	var result string
 	arg := new(Arg)
-	arg.value = ip
-	arg.id = sha_adapted(ip)
+	arg.Value = ip
+	arg.Id = sha_adapted(ip)
 
 	client, err := rpc.DialHTTP("tcp", "localhost:1234")
 	if err != nil {
@@ -147,7 +150,7 @@ func getKeys(me *Node) map[int]string {
 }
 
 func (t *Successor) AddObject(arg *Arg, reply *string) error {
-	id := sha_adapted(arg.value)                   //id risorsa da aggiugere
+	id := sha_adapted(arg.Value)                   //id risorsa da aggiugere
 	idPredecessor := sha_adapted(node.predecessor) //id del nodo che ha chiamato il successore (quindi il precedente del successore è il nodo che ha chiamato il successore)
 	//l'idea è questa: risorsa =3, il nodo chiamante è 1, il successivo è 5. chiamo '5' e gli dico di aggiungere risorsa '3' e che il suo nodo precedente è '1'.
 	if (id <= node.id && id > idPredecessor) || (idPredecessor > node.id && (id > idPredecessor || id <= node.id)) {
@@ -155,8 +158,8 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		if node.objects[id] != "" {
 			*reply = "oggetto con id:  " + node.objects[id] + " già esistente "
 		} else {
-			node.objects[id] = arg.value
-			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.value, id)
+			node.objects[id] = arg.Value
+			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.Value, id)
 		}
 	} else { //devo provare col successivo! NB: QUI ANCORA NO FINGER TABLE, QUINDI ME LI GIRO TUTTI
 		client, err := rpc.DialHTTP("tcp", node.successor)
@@ -175,3 +178,52 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 
 //todo search object
 //todo main
+
+func (t *Successor) SearchObject(arg *Arg, reply *string) error {
+	id := arg.Id //id oggetto
+	idPredecessor := sha_adapted(node.predecessor)
+	if (id <= node.id && id > idPredecessor) || (idPredecessor > node.id && (id > idPredecessor || id <= node.id)) {
+		if node.objects[arg.Id] == "" {
+			*reply = "L'oggetto cercato non è presente"
+		} else {
+			*reply = "L'oggetto con id cercato è " + node.objects[arg.Id] + " "
+		}
+	} else { // l'oggetto cercato non è nel nodo successore, quindi devo 'iterare', nb: questo poi dovrò farlo con la finger table}
+		client, err := rpc.DialHTTP("tcp", node.successor)
+		if err != nil {
+			log.Fatal("Errore dialHttp", err)
+		}
+		err = client.Call("Successor.SearchObject", arg, &reply)
+		if err != nil {
+			log.Fatal("Client.call error", err)
+		}
+	}
+	return nil
+}
+
+func main() {
+	arg := os.Args
+	if len(arg) < 2 {
+		log.Fatal("Invocazione con argomento ip:port")
+	} //secondo argomento indirizzoIp
+
+	me := newNode(arg[1])
+	succ := getSuccessorIp(me.ip) //successore nodo creato
+	me.successor = succ
+	me.id = sha_adapted(me.ip)
+
+	pred := getPredecessor(me) //cerco il precedente
+	me.predecessor = pred
+
+	me.objects = getKeys(me)
+
+	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
+	rpc.Register(successor)
+	rpc.HandleHTTP()
+	listener, err := net.Listen("tpc", me.ip)
+	if err != nil {
+		log.Fatal("Listener error:", err)
+	}
+	http.Serve(listener, nil)
+
+}
