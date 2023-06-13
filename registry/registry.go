@@ -41,7 +41,7 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	}
 	if Nodes[id] != "" { //verifica se l'elemento con l'indice id nell'array Nodes non è una stringa vuota.
 		*reply = "" //se sto registrando un id già esistente, non posso aggiungerlo
-		return errors.New("Esiste già un nodo con questo ID")
+		return errors.New("esiste già un nodo con questo ID")
 
 	}
 	if len(Nodes) >= MaxNodi { //limite massimo nodi raggiunto
@@ -56,8 +56,9 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	}
 	//adesso in keys ho tutte le chiavi 'k'
 
-	sort.Sort(sort.IntSlice(keys)) //le ordino
-	Nodes[id] = arg.Value          //metto il nodo in Nodes
+	sort.Ints(keys)
+	//sort.Sort(sort.IntSlice(keys)) //le ordino
+	Nodes[id] = arg.Value //metto il nodo in Nodes
 	fmt.Println(Nodes)
 
 	//cerco il successore
@@ -81,7 +82,7 @@ func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 */
 func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 	if len(Nodes) == 0 {
-		return errors.New("Non ci sono nodi nell'anello")
+		return errors.New("non ci sono nodi nell'anello")
 	}
 	keys := make([]int, 0, len(Nodes))
 	for k := range Nodes {
