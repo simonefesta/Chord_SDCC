@@ -48,8 +48,7 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 		*reply = ""
 		return errors.New("limite nodi raggiunto")
 	}
-
-	//negli altri casi, ovvero il nodo che voglio aggiungere si può aggiungere, devo trovare il successore.
+	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	for k := range Nodes {
 		keys = append(keys, k)
@@ -67,7 +66,7 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 			return nil
 		}
 	}
-	*reply = Nodes[keys[0]] //se il mio nodo è più grande di tutti, allora il successore è 0
+	*reply = Nodes[keys[0]] //se il mio nodo è più grande di tutti, allora il successore è il nodo in posizione 0
 
 	return nil
 }

@@ -62,16 +62,20 @@ type Args struct { //argomenti da passare al metodo remoto Successor
 //****QUI STO FACENDO I COLLEGAMENTI TRA NODI, SPECIFICANDO NODO IP CORRENTE & NODO A CUI COLLEGARMI.
 //method available for remote access must be like func (t *T) MethodName(argType T1, replyType *T2) error
 
-func (t *Successor) Predecessor(args *Args, reply *string) error { //DA RIVEDEERE
+func (t *Successor) Predecessor(args *Args, reply *string) error { //DA RIVEDERE
+
 	*reply = node.predecessor
 	if node.predecessor == node.successor { //qui il campo predecessor deve essere marcato
 		node.successor = args.CurrentIp //se nodo precedente e successore sono uguali, vuol dire che ho una rete di un nodo? Quindi sono io il successore di me stesso
-	} //non dovrebbe essere args.ip?
-	if reply == nil { //vedo se puntatore è nullo
-		reply = &args.Ip
+	}
+	if node.predecessor == "" { // node.predecessor è una stringa, se esiste il precedente, esso è rappresentato da una stringa.
+		*reply = args.Ip //se non c'è predecessore, allora sono il predecessore di me stesso.
+
 	} else {
 		node.predecessor = args.CurrentIp
+
 	}
+
 	return nil
 
 }
@@ -208,7 +212,7 @@ func main() {
 	arg := os.Args
 	if len(arg) < 2 {
 		log.Fatal("Invocazione con argomento ip:port")
-	} //secondo argomento indirizzoIp
+	} //secondo argomento indirizzoIp 127.0.0.4:8084
 
 	me := newNode(arg[1])
 	succ := getSuccessorIp(me.ip) //successore nodo creato
