@@ -57,7 +57,6 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	//adesso in keys ho tutte le chiavi 'k'
 
 	sort.Ints(keys)
-	//sort.Sort(sort.IntSlice(keys)) //le ordino
 	Nodes[id] = arg.Value //metto il nodo in Nodes
 	fmt.Println(Nodes)
 
@@ -73,13 +72,6 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	return nil
 }
 
-/*
-	TODO: ReturnChordNode A CHE SERVE?
-
-func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
-
-}
-*/
 func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 	if len(Nodes) == 0 {
 		return errors.New("non ci sono nodi nell'anello")
@@ -89,7 +81,8 @@ func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 		keys = append(keys, k)
 	}
 
-	rand.Seed(time.Now().Unix())
+	rand.NewSource(time.Now().Unix())
+
 	n := rand.Int() % len(keys)
 	*reply = Nodes[keys[n]]
 
