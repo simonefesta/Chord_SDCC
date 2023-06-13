@@ -9,7 +9,7 @@ import (
 )
 
 type KeyboardArgoment struct { //ciò che viene preso da tastiera se vogliamo inserire un oggetto
-	id    int
+	Id    int
 	Value string
 }
 
@@ -42,6 +42,7 @@ func main() {
 			}
 			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo "localhost:1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
+
 			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 			if err != nil {
 				// Gestisci l'errore se si verifica
@@ -50,7 +51,7 @@ func main() {
 
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
 
-			client, err = rpc.DialHTTP("tcp", "localhost:1234")
+			client, err = rpc.DialHTTP("tcp", result)
 			if err != nil {
 				log.Fatal("Errore connessione client ", err)
 			}
@@ -62,10 +63,38 @@ func main() {
 			}
 
 			fmt.Println(result)
-			//break
+			break
 
-			//case2 TODO
+		case 2:
+			fmt.Print("Digita l'id dell'oggetto da cercare: ")
+
+			fmt.Scanln(&keyboardArgoment.Id)
+
+			client, err := rpc.DialHTTP("tcp", "localhost:1234")
+			if err != nil {
+				log.Fatal("Client connection error: ", err)
+			}
+
+			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result)
+			if err != nil {
+				log.Fatal("Client invocation error: ", err)
+			}
+
+			client, err = rpc.DialHTTP("tcp", result)
+			if err != nil {
+				log.Fatal("Client connection error2: ", err)
+			}
+
+			err = client.Call("Successor.SearchObject", keyboardArgoment, &result)
+			if err != nil {
+				log.Fatal("Client invocation error: ", err)
+			}
+
+			fmt.Println(result)
+			break
+
+		default:
+			println("Devi selezionare una delle due scelte digitando 1 o 2")
 		}
-
 	}
 }

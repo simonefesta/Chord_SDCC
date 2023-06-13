@@ -45,7 +45,7 @@ func getSuccessorIp(ip string) string {
 	}
 	err = client.Call("Registry.Successor", arg, &result)
 	if err != nil {
-		log.Fatal("Client invocation error: ", err)
+		log.Fatal("Client invocation error nel getSuccessor: ", err)
 	}
 
 	return result
@@ -55,8 +55,8 @@ func getSuccessorIp(ip string) string {
 type Successor string
 
 type Args struct { //argomenti da passare al metodo remoto Successor
-	ip        string
-	currentIp string
+	Ip        string
+	CurrentIp string
 }
 
 //****QUI STO FACENDO I COLLEGAMENTI TRA NODI, SPECIFICANDO NODO IP CORRENTE & NODO A CUI COLLEGARMI.
@@ -65,12 +65,12 @@ type Args struct { //argomenti da passare al metodo remoto Successor
 func (t *Successor) Predecessor(args *Args, reply *string) error { //DA RIVEDEERE
 	*reply = node.predecessor
 	if node.predecessor == node.successor { //qui il campo predecessor deve essere marcato
-		node.successor = args.currentIp //se nodo precedente e successore sono uguali, vuol dire che ho una rete di un nodo? Quindi sono io il successore di me stesso
+		node.successor = args.CurrentIp //se nodo precedente e successore sono uguali, vuol dire che ho una rete di un nodo? Quindi sono io il successore di me stesso
 	} //non dovrebbe essere args.ip?
 	if reply == nil { //vedo se puntatore è nullo
-		reply = &args.ip
+		reply = &args.Ip
 	} else {
-		node.predecessor = args.currentIp
+		node.predecessor = args.CurrentIp
 	}
 	return nil
 
@@ -83,8 +83,8 @@ func getPredecessor(me *Node) string { //qui il nodo stesso, localmente, cerca i
 		return me.ip
 	}
 	args := new(Args)
-	args.ip = me.successor //quindi ip è del successore?
-	args.currentIp = me.ip //questo sono io
+	args.Ip = me.successor //quindi ip è del successore?
+	args.CurrentIp = me.ip //questo sono io
 
 	client, err := rpc.DialHTTP("tcp", me.successor)
 	if err != nil {
@@ -160,6 +160,8 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		} else {
 			node.objects[id] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.Value, id)
+			fmt.Println(node.objects)
+
 		}
 	} else { //devo provare col successivo! NB: QUI ANCORA NO FINGER TABLE, QUINDI ME LI GIRO TUTTI
 		client, err := rpc.DialHTTP("tcp", node.successor)
@@ -182,6 +184,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	id := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.predecessor)
+
 	if (id <= node.id && id > idPredecessor) || (idPredecessor > node.id && (id > idPredecessor || id <= node.id)) {
 		if node.objects[arg.Id] == "" {
 			*reply = "L'oggetto cercato non è presente"
@@ -191,11 +194,11 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	} else { // l'oggetto cercato non è nel nodo successore, quindi devo 'iterare', nb: questo poi dovrò farlo con la finger table}
 		client, err := rpc.DialHTTP("tcp", node.successor)
 		if err != nil {
-			log.Fatal("Errore dialHttp", err)
+			log.Fatal("Errore dialHttp node successor", err)
 		}
 		err = client.Call("Successor.SearchObject", arg, &reply)
 		if err != nil {
-			log.Fatal("Client.call error", err)
+			log.Fatal("Client call error", err)
 		}
 	}
 	return nil
@@ -220,9 +223,9 @@ func main() {
 	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
 	rpc.Register(successor)
 	rpc.HandleHTTP()
-	listener, err := net.Listen("tpc", me.ip)
+	listener, err := net.Listen("tcp", me.ip)
 	if err != nil {
-		log.Fatal("Listener error:", err)
+		log.Fatal("Listener error in node.go :", err)
 	}
 	http.Serve(listener, nil)
 

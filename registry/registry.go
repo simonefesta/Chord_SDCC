@@ -20,22 +20,22 @@ var Nodes = make(map[int]string)
 
 // argomenti per richiesta rpc client
 type Argclient struct {
-	ip string
+	Ip string
 }
 
 type Arg struct {
-	id    int
-	value string
+	Id    int
+	Value string
 }
 
 type Registry string //fa parte della registrazione anche successor
 //Io qui sto registrando un nuovo nodo ("registry") di cui voglio trovare il successore
 
 func (t *Registry) Successor(arg *Arg, reply *string) error {
-	id := arg.id
+	id := arg.Id
 	if len(Nodes) == 0 { //primo nodo
-		Nodes[id] = arg.value
-		*reply = arg.value //successore di sè stesso
+		Nodes[id] = arg.Value
+		*reply = arg.Value //successore di sè stesso
 		fmt.Println(Nodes)
 		return nil
 	}
@@ -57,7 +57,7 @@ func (t *Registry) Successor(arg *Arg, reply *string) error {
 	//adesso in keys ho tutte le chiavi 'k'
 
 	sort.Sort(sort.IntSlice(keys)) //le ordino
-	Nodes[id] = arg.value          //metto il nodo in Nodes
+	Nodes[id] = arg.Value          //metto il nodo in Nodes
 	fmt.Println(Nodes)
 
 	//cerco il successore
