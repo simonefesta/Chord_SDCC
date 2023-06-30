@@ -49,6 +49,8 @@ func main() {
 				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
+			fmt.Println("Registry return chord node ha restituito ", result)
+
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
 
 			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.

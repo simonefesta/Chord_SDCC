@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
+	"time"
 )
 
 type Node struct {
@@ -32,9 +33,14 @@ func newNode(ip string) *Node {
 	return node
 }
 
-func getSuccessorIp(ip string) string {
+type Neightbors struct {
+	Successor   string
+	Predecessor string
+}
 
-	var result string
+func getNeightbors(ip string) *Neightbors {
+
+	result := new(Neightbors)
 	arg := new(Arg)
 	arg.Value = ip
 	arg.Id = sha_adapted(ip)
@@ -43,9 +49,29 @@ func getSuccessorIp(ip string) string {
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}
-	err = client.Call("Registry.Successor", arg, &result)
+	err = client.Call("Registry.Neightbors", arg, &result)
 	if err != nil {
-		log.Fatal("Client invocation error nel getSuccessor: ", err)
+		log.Fatal("Client invocation error nel registry.neightbors: ", err)
+	}
+
+	return result
+
+}
+
+func refreshNeightbors(node *Node) *Neightbors {
+
+	result := new(Neightbors)
+	arg := new(Arg)
+	arg.Value = node.ip
+	arg.Id = sha_adapted(node.ip)
+
+	client, err := rpc.DialHTTP("tcp", "localhost:1234")
+	if err != nil {
+		log.Fatal("Client connection error: ", err)
+	}
+	err = client.Call("Registry.RefreshNeightbors", arg, &result)
+	if err != nil {
+		log.Fatal("Client invocation error nel registry.neightbors: ", err)
 	}
 
 	return result
@@ -65,16 +91,29 @@ type Args struct { //argomenti da passare al metodo remoto Successor
 func (t *Successor) Predecessor(args *Args, reply *string) error { //DA RIVEDERE
 
 	*reply = node.predecessor
+	fmt.Println("*******************************************************************+ ")
+
+	fmt.Println("Il nodo operante in Predecessor è ", node.id)
+	fmt.Println("Il predecessore è", node.predecessor)
+	fmt.Println("Il successivo è", node.successor)
+
+	fmt.Println("Il return inizialmente impostato è ", node.predecessor)
+
 	if node.predecessor == node.successor { //qui il campo predecessor deve essere marcato
 		node.successor = args.CurrentIp //se nodo precedente e successore sono uguali, vuol dire che ho una rete di un nodo? Quindi sono io il successore di me stesso
+		fmt.Println("IF 1: imposto nodesuccessor ", node.successor)
 	}
-	if node.predecessor == "" { // node.predecessor è una stringa, se esiste il precedente, esso è rappresentato da una stringa.
-		*reply = args.Ip //se non c'è predecessore, allora sono il predecessore di me stesso.
+	if reply == nil { // node.predecessor è una stringa, se esiste il precedente, esso è rappresentato da una stringa.
+		reply = &args.Ip //se non c'è predecessore, allora sono il predecessore di me stesso.
+		fmt.Println("IF 2 ritorno reply ", args.Ip)
 
 	} else {
 		node.predecessor = args.CurrentIp
+		fmt.Println("ELSE ritorno node predecessor  ", args.CurrentIp)
 
 	}
+
+	fmt.Println("*******************************************************************+ ")
 
 	return nil
 
@@ -164,6 +203,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		} else {
 			node.objects[id] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.Value, id)
+			fmt.Println("pred - succ", node.predecessor, node.successor) //precedessore e successore
 			fmt.Println(node.objects)
 
 		}
@@ -181,9 +221,6 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 	}
 	return nil
 }
-
-//todo search object
-//todo main
 
 func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	id := arg.Id //id oggetto
@@ -210,19 +247,27 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 
 func main() {
 	arg := os.Args
+	fmt.Println(sha_adapted("aoo"))
+
 	if len(arg) < 2 {
 		log.Fatal("Invocazione con argomento ip:port")
 	} //secondo argomento indirizzoIp 127.0.0.4:8084
 
 	me := newNode(arg[1])
-	succ := getSuccessorIp(me.ip) //successore nodo creato
-	me.successor = succ
+	neightbors := getNeightbors(me.ip) //successore nodo creato
+	me.successor = neightbors.Successor
 	me.id = sha_adapted(me.ip)
+	me.predecessor = neightbors.Predecessor
 
-	pred := getPredecessor(me) //cerco il precedente
-	me.predecessor = pred
+	//pred := getPredecessor(me) //cerco il precedente
+	//me.predecessor = pred
 
+	fmt.Println("Io sono ", me.id)
+	fmt.Println("il mio successore è ", me.successor)
+	fmt.Println("il mio predecessore è", me.predecessor)
 	me.objects = getKeys(me)
+
+	go scanRing(me)
 
 	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
 	rpc.Register(successor)
@@ -232,5 +277,28 @@ func main() {
 		log.Fatal("Listener error in node.go :", err)
 	}
 	http.Serve(listener, nil)
+
+}
+
+func scanRing(me *Node) {
+	for {
+		time.Sleep(5 * time.Second)
+		neightbors := refreshNeightbors(me) //successore nodo creato
+		me.successor = neightbors.Successor
+		//me.id = sha_adapted(me.ip)
+		fmt.Println("test predecessore", neightbors.Predecessor)
+		if neightbors.Predecessor != "" {
+			me.predecessor = neightbors.Predecessor
+		}
+
+		//pred := getPredecessor(me) //cerco il precedente
+		//me.predecessor = pred
+
+		fmt.Println("Io sono ", me.id)
+		fmt.Println("il mio nuovo successore è ", me.successor)
+		fmt.Println("il mio nuovo predecessore è", me.predecessor)
+		me.objects = getKeys(me)
+
+	}
 
 }
