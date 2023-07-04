@@ -85,64 +85,6 @@ type Args struct { //argomenti da passare al metodo remoto Successor
 	CurrentIp string
 }
 
-//****QUI STO FACENDO I COLLEGAMENTI TRA NODI, SPECIFICANDO NODO IP CORRENTE & NODO A CUI COLLEGARMI.
-//method available for remote access must be like func (t *T) MethodName(argType T1, replyType *T2) error
-
-func (t *Successor) Predecessor(args *Args, reply *string) error { //DA RIVEDERE
-
-	*reply = node.predecessor
-	fmt.Println("*******************************************************************+ ")
-
-	fmt.Println("Il nodo operante in Predecessor è ", node.id)
-	fmt.Println("Il predecessore è", node.predecessor)
-	fmt.Println("Il successivo è", node.successor)
-
-	fmt.Println("Il return inizialmente impostato è ", node.predecessor)
-
-	if node.predecessor == node.successor { //qui il campo predecessor deve essere marcato
-		node.successor = args.CurrentIp //se nodo precedente e successore sono uguali, vuol dire che ho una rete di un nodo? Quindi sono io il successore di me stesso
-		fmt.Println("IF 1: imposto nodesuccessor ", node.successor)
-	}
-	if reply == nil { // node.predecessor è una stringa, se esiste il precedente, esso è rappresentato da una stringa.
-		reply = &args.Ip //se non c'è predecessore, allora sono il predecessore di me stesso.
-		fmt.Println("IF 2 ritorno reply ", args.Ip)
-
-	} else {
-		node.predecessor = args.CurrentIp
-		fmt.Println("ELSE ritorno node predecessor  ", args.CurrentIp)
-
-	}
-
-	fmt.Println("*******************************************************************+ ")
-
-	return nil
-
-}
-
-func getPredecessor(me *Node) string { //qui il nodo stesso, localmente, cerca il suo predecessore
-
-	var reply string
-	if me.successor == me.ip { //successore di me stesso
-		return me.ip
-	}
-	args := new(Args)
-	args.Ip = me.successor //quindi ip è del successore?
-	args.CurrentIp = me.ip //questo sono io
-
-	client, err := rpc.DialHTTP("tcp", me.successor)
-	if err != nil {
-		log.Fatal("Client connection error: ", err)
-	}
-
-	err = client.Call("Successor.Predecessor", args, &reply)
-	if err != nil {
-		log.Fatal("errore invocazione chiamata remota", err)
-
-	}
-	return reply
-
-}
-
 // **OLTRE AL NODO DEVO SPECIFICARE ANCHE LE CHIAVI
 type ArgId struct {
 	Id          int
@@ -247,7 +189,6 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 
 func main() {
 	arg := os.Args
-	fmt.Println(sha_adapted("aoo"))
 
 	if len(arg) < 2 {
 		log.Fatal("Invocazione con argomento ip:port")
@@ -282,11 +223,10 @@ func main() {
 
 func scanRing(me *Node) {
 	for {
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		neightbors := refreshNeightbors(me) //successore nodo creato
 		me.successor = neightbors.Successor
 		//me.id = sha_adapted(me.ip)
-		fmt.Println("test predecessore", neightbors.Predecessor)
 		if neightbors.Predecessor != "" {
 			me.predecessor = neightbors.Predecessor
 		}
@@ -297,7 +237,7 @@ func scanRing(me *Node) {
 		fmt.Println("Io sono ", me.id)
 		fmt.Println("il mio nuovo successore è ", me.successor)
 		fmt.Println("il mio nuovo predecessore è", me.predecessor)
-		me.objects = getKeys(me)
+		//me.objects = getKeys(me)
 
 	}
 
