@@ -38,7 +38,9 @@ Ogni nodo è responsabile delle chiavi tra sè stesso e il nodo *precedente*, as
 La risorsa con chiave *k* è gestita da un nodo avente per identificativo il più piccolo identificativo tale che $id \geq k$. Tale nodo è chiamato il ***successore della chiave k, o succ(k)***.
 Vediamo un veloce esempio.
 
-![1.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/1.png)
+![1.png](/home/festinho/Progetti%20Università/Chord_SDCC/other%20stuff/img/1.png)
+
+
 
 Chi gestisce la risorsa 1? Il più piccolo nodo avente $id \geq 1$, quindi partendo da 0 scorro finchè non eccedo 1, e prendo il precedente. In questo caso **succ(1)=1**, perchè il nodo 1 è il primo che è $\geq1$.
 Il successore di 10? scorro finchè non trovo il primo nodo che supera/è uguale la risorsa.
@@ -58,9 +60,9 @@ La finger table è una lista parziale di nodi progressiva, più vado "lontano" n
 Essa ha *m righe*, dove *m* sono i bit dedicati ai vari GUID.
 Ad esempio, se m=3, allora posso definire fino ad $2^3=8$ nodi.
 
-Se $FT_p$ è la tabella del nodo *p*, allora la riga i-esima sarà:$FT_p[i]=succ(p+2^{i-1})\;mod \;2^m$, con $i \leq i \leq m$
+Se $FT_p$ è la tabella del nodo *p*, allora la riga i-esima sarà:$FT_p[i]=succ(p+2^{i-1})\;mod \;2^m$, con $1 \leq i \leq m$
 
-![2.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/2.png)
+![](/home/festinho/.var/app/com.github.marktext.marktext/config/marktext/images/2023-08-03-11-33-08-2.png)
 
 ### Algoritmo di routing di CHORD
 
@@ -72,7 +74,7 @@ Vogliamo mappare la chiave *k* in *succ(k)*, partendo da un nodo *p.*
 
 - Altrimenti, cerco il nodo più lontano *q* di indice *j* che non ecceda la risorsa, ovvero: $FT_p[j] \leq k < FT_p[j+1]$.  Se ad esempio abbiamo nella FT il nodo 2 nella riga "j", e il nodo 4 nella riga "j+1" e la risorsa da cercare ha k=2 oppure k=3, allora tale risorsa sarà gestita dal nodo "2". Altrimenti vado avanti nelle righe.
 
-![3.png](/Users/festinho/Progetti%20Uni/Chord_SDCC/img/3.png)
+
 
 ### Gestione JOIN & LEAVE
 
