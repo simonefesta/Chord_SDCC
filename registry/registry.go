@@ -67,9 +67,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	sort.Ints(keys)
 	fmt.Println(keys)
 	Nodes[id] = arg.Value //metto il nodo in Nodes
-	fmt.Println("\ntest")
 	fmt.Println(Nodes)
-	fmt.Println("\nFInetest")
 
 	prevKey := keys[0]
 	//cerco il successore
@@ -131,7 +129,7 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	fingerTable[0] = arg.Id
 	fmt.Printf("Finger Table per %d ", id)
 	for i := 1; i <= m; i++ {
-		fmt.Printf("<%d,%d >   ", i, fingerTable[i])
+		fmt.Printf("<%d,%d > ", i, fingerTable[i])
 	}
 	fmt.Printf("\n\n")
 
@@ -197,7 +195,7 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 }
 
 func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
-	fmt.Printf("\nn nodi %d \n", len(Nodes))
+	//fmt.Printf("\n nodi %d \n", len(Nodes))
 	if len(Nodes) == 0 {
 		return errors.New("non ci sono nodi nell'anello")
 	}
@@ -214,6 +212,12 @@ func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 	*reply = Nodes[keys[n]]
 
 	return nil
+}
+
+func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
+	*ipNodo = Nodes[idNodo]
+	return nil
+
 }
 
 func main() {

@@ -49,7 +49,7 @@ func main() {
 				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
-			fmt.Println("Registry return chord node ha restituito ", result)
+			//fmt.Println("Registry return chord node ha restituito nodo RANDOM ", result)
 
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
 
@@ -57,7 +57,8 @@ func main() {
 			if err != nil {
 				log.Fatal("Errore connessione client ", err)
 			}
-			fmt.Println("Ho trovato ", result)
+
+			//fmt.Println("Ho trovato ", result)
 
 			err = client.Call("Successor.AddObject", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 			if err != nil {
@@ -77,12 +78,12 @@ func main() {
 				log.Fatal("Client connection error: ", err)
 			}
 
-			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result)
+			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result) //chiamo un nodo random
 			if err != nil {
 				log.Fatal("Client invocation error: ", err)
 			}
 
-			client, err = rpc.DialHTTP("tcp", result)
+			client, err = rpc.DialHTTP("tcp", result) //mi connetto a questo nodo random
 			if err != nil {
 				log.Fatal("Client connection error2: ", err)
 			}

@@ -157,7 +157,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 	idRisorsa := sha_adapted(arg.Value)            //id risorsa da aggiugere
 	idPredecessor := sha_adapted(node.predecessor) //id del nodo che ha chiamato il successore (quindi il precedente del successore è il nodo che ha chiamato il successore)
 	idSuccessor := sha_adapted(node.successor)
-	//l'idea è questa: risorsa =3, il nodo chiamante è 1, il successivo è 5. chiamo '5' e gli dico di aggiungere risorsa '3' e che il suo nodo precedente è '1'.
+	//l'idea è questa: risorsa = 3, il nodo chiamante è 1, il successivo è 5. chiamo '5' e gli dico di aggiungere risorsa '3' e che il suo nodo precedente è '1'.
 
 	if (node.id == idPredecessor && node.id == idSuccessor) || (idRisorsa <= node.id && idRisorsa > idPredecessor) || (idPredecessor > node.id && (idRisorsa > idPredecessor || idRisorsa <= node.id)) {
 		//primo pezzo è se c'è un solo nodo, il secondo pezzo è il caso 'comune', il terzo pezzo è quando sto a fine anello, quindi dove può verificarsi che il successore di '9' sia '1', per via del modulo. (caso 2 libretto)
@@ -185,21 +185,51 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 }
 
 func (t *Successor) SearchObject(arg *Arg, reply *string) error {
-	id := arg.Id //id oggetto
+	idRisorsa := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.predecessor)
-
-	if (id <= node.id && id > idPredecessor) || (idPredecessor > node.id && (id > idPredecessor || id <= node.id)) {
-		if node.objects[arg.Id] == "" {
+	isFound := false
+	if (idRisorsa <= node.id && idRisorsa > idPredecessor) || (idPredecessor > node.id && (idRisorsa > idPredecessor || idRisorsa <= node.id)) {
+		if node.objects[idRisorsa] == "" {
 			*reply = "L'oggetto cercato non è presente"
 		} else {
-			*reply = "L'oggetto con id cercato è '" + node.objects[arg.Id] + "', posseduto dal nodo '" + strconv.Itoa(node.id) + "'. "
+			*reply = "L'oggetto con id cercato è '" + node.objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.id) + "'. "
 		}
-	} else { // l'oggetto cercato non è nel nodo successore, quindi devo 'iterare', nb: questo poi dovrò farlo con la finger table}
-		client, err := rpc.DialHTTP("tcp", node.successor)
+	} else {
+		// l'oggetto cercato non è nel nodo successore, quindi devo 'iterare', nb: questo poi dovrò farlo con la finger table}
+		//devo lavorare da qui
+		//trovo nella finger table il nodo da contattare
+		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
+		for i := 1; i < len(node.finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
+			fmt.Printf("Sto cercando nella finger, esamino %d \n", node.finger[i])
+			if (idRisorsa >= node.finger[i]) && (idRisorsa < node.finger[i+1]) {
+				nodoContactId = node.finger[i]
+				fmt.Printf("Ho trovato %d ", nodoContactId)
+				isFound = true
+				break
+			}
+		}
+		if !isFound {
+			nodoContactId = node.finger[len(node.finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
+		}
+		fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.id, idRisorsa, nodoContactId, isFound)
+		//adesso devo chiedere al registry chi è questo nodo con indice
+		var nodoContact string
+		client, err := rpc.DialHTTP("tcp", "localhost:1234")
 		if err != nil {
-			log.Fatal("Errore dialHttp node successor", err)
+			log.Fatal("Client connection error ask node 2 contact: ", err)
 		}
-		err = client.Call("Successor.SearchObject", arg, &reply)
+		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
+		if err != nil {
+			log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		}
+
+		fmt.Printf("Il registry mi ha detto che l'id del nodo %d è associato al nodo %s", nodoContactId, nodoContact)
+
+		client2, err := rpc.DialHTTP("tcp", nodoContact)
+		if err != nil {
+			log.Fatal("Errore dialHttp nodocontact fingertable", err)
+		}
+		err = client2.Call("Successor.SearchObject", arg, &reply)
 		if err != nil {
 			log.Fatal("Client call error", err)
 		}
@@ -220,11 +250,10 @@ func scanRing(me *Node) {
 		//pred := getPredecessor(me) //cerco il precedente
 		//me.predecessor = pred
 
-		fmt.Println("Io sono ", me.id)
+		/*fmt.Println("Io sono ", me.id)
 		fmt.Println("il mio nuovo successore è ", me.successor)
 		fmt.Println("il mio nuovo predecessore è", me.predecessor)
-		//me.objects = getKeys(me)
-
+		//me.objects = getKeys(me)*/
 		//fmt.Println(me.finger)
 		CreateFingerTable(me)
 		fmt.Println(me.finger)
@@ -250,8 +279,8 @@ func main() {
 	//me.predecessor = pred
 
 	fmt.Println("Io sono ", me.id)
-	fmt.Println("il mio successore è ", me.successor)
-	fmt.Println("il mio predecessore è", me.predecessor)
+	//fmt.Println("il mio successore è ", me.successor)
+	//fmt.Println("il mio predecessore è", me.predecessor)
 	me.objects = getKeys(me)
 	//CreateFingerTable(me)
 	go scanRing(me)
