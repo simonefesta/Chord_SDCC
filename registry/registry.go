@@ -194,7 +194,7 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 	return nil
 }
 
-func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
+func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
 	//fmt.Printf("\n nodi %d \n", len(Nodes))
 	if len(Nodes) == 0 {
 		return errors.New("non ci sono nodi nell'anello")
@@ -216,6 +216,33 @@ func (t *Registry) ReturnChordNode(arg *Arg, reply *string) error {
 
 func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 	*ipNodo = Nodes[idNodo]
+	return nil
+
+}
+
+func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
+	idNodo := arg.Id
+	removedNode := Nodes[idNodo]
+	//neighbors := new(NeighborsReply)
+	var result string
+
+	fmt.Printf("Devo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
+
+	client, err := rpc.DialHTTP("tcp", removedNode) //contatto il predecessore
+	if err != nil {
+		log.Fatal("Client connection error ask node 2 contact: ", err)
+	}
+	fmt.Printf("per ora nessun errore")
+
+	err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	if err != nil {
+		log.Fatal("Client invocation error nel registry.removeNode: ", err)
+
+	}
+
+	delete(Nodes, idNodo)
+	fmt.Print(Nodes)
+
 	return nil
 
 }

@@ -21,9 +21,7 @@ func main() {
 
 	fmt.Println("1. Inserisci un nuovo oggetto")
 	fmt.Println("2. Cerca un oggetto")
-	/* TODO
-	fmt.Println("3. Aggiungi un nuovo nodo")
-	fmt.Println("4. Rimuovi un nodo") */
+	fmt.Println("3. Rimuovi un nodo")
 
 	for {
 		fmt.Print("Inserisci scelta: ")
@@ -43,7 +41,7 @@ func main() {
 			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo "localhost:1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
 
-			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {
 				// Gestisci l'errore se si verifica
 				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
@@ -78,7 +76,7 @@ func main() {
 				log.Fatal("Client connection error: ", err)
 			}
 
-			err = client.Call("Registry.ReturnChordNode", keyboardArgoment, &result) //chiamo un nodo random
+			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo un nodo random
 			if err != nil {
 				log.Fatal("Client invocation error: ", err)
 			}
@@ -89,6 +87,29 @@ func main() {
 			}
 
 			err = client.Call("Successor.SearchObject", keyboardArgoment, &result)
+			if err != nil {
+				log.Fatal("Client invocation error: ", err)
+			}
+
+			fmt.Println(result)
+
+		case 3:
+			fmt.Print("Digita l'id del nodo da rimuovere: ")
+
+			fmt.Scanln(&keyboardArgoment.Id)
+
+			client, err := rpc.DialHTTP("tcp", "localhost:1234")
+			if err != nil {
+				log.Fatal("Client connection error: ", err)
+			}
+			//var nodoContact string
+
+			/*err = client.Call("Registry.GiveNodeLookup", keyboardArgoment, &nodoContact) //contatto il nodo che voglio rimuovere
+			if err != nil {
+				log.Fatal("Client invocation error nel registry.neighbors: ", err)
+			}*/
+
+			err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
 			if err != nil {
 				log.Fatal("Client invocation error: ", err)
 			}
