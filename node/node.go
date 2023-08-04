@@ -28,6 +28,8 @@ type Arg struct { //ciò che passo ai metodi
 
 var node *Node
 
+var stopChan = make(chan struct{})
+
 func newNode(ip string) *Node {
 	node = new(Node)
 	node.Ip = ip
@@ -100,6 +102,7 @@ func refreshNeighbors(node *Node) *Neighbors {
 func (t *Successor) UpdatePredecessor(nodoChiamante *Node, reply *string) error {
 	node.Successor = nodoChiamante.Successor
 	fmt.Printf("Il mio nuovo successore e' %s", node.Successor)
+	CreateFingerTable(node) //devo rigenerarla
 
 	return nil
 
@@ -110,15 +113,20 @@ func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 	fmt.Printf("Il mio nuovo predecessore e' %s", node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
 		node.Objects[key] = value
-		fmt.Printf("Ho un nuovo elemento: %s", value)
+		fmt.Printf("Ho un nuovo elemento: %s \n", value)
 		delete(nodoChiamante.Objects, key)
 
 	}
+	CreateFingerTable(node) //devo rigenerarla
+
 	return nil
 
 }
 
 func (t *Successor) UpdateNeighbors(idNodo int, result *string) error {
+
+	close(stopChan)
+	fmt.Printf("chiudo la sessione")
 
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
 	if err != nil {
@@ -284,29 +292,32 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	return nil
 }
 
-func scanRing(me *Node) {
+func scanRing(me *Node, stopChan <-chan struct{}) {
 	for {
-		time.Sleep(10 * time.Second)
-		neightbors := refreshNeighbors(me) //successore nodo creato
-		me.Successor = neightbors.Successor
-		//me.id = sha_adapted(me.ip)
-		if neightbors.Predecessor != "" {
-			me.Predecessor = neightbors.Predecessor
+		select {
+		case <-stopChan:
+			fmt.Printf("FINE DEI GIOCHI")
+			return
+		default:
+			time.Sleep(20 * time.Second)
+			neightbors := refreshNeighbors(me) //successore nodo creato
+			me.Successor = neightbors.Successor
+			if neightbors.Predecessor != "" {
+				me.Predecessor = neightbors.Predecessor
+			}
+			CreateFingerTable(me)
+			fmt.Println(me.Finger)
+
 		}
-
-		//pred := getPredecessor(me) //cerco il precedente
-		//me.predecessor = pred
-
-		/*fmt.Println("Io sono ", me.id)
-		fmt.Println("il mio nuovo successore è ", me.successor)
-		fmt.Println("il mio nuovo predecessore è", me.predecessor)
-		//me.objects = getKeys(me)*/
-		//fmt.Println(me.finger)
-		CreateFingerTable(me)
-		fmt.Println(me.Finger)
 
 	}
 
+}
+
+func (t *Successor) CloseConn(idNodo int, result *string) error {
+	fmt.Print("Mi hanno contattato per uccidermi!!!!")
+	close(stopChan)
+	return nil
 }
 
 func main() {
@@ -330,7 +341,8 @@ func main() {
 	//fmt.Println("il mio predecessore è", me.predecessor)
 	me.Objects = getKeys(me)
 	//CreateFingerTable(me)
-	go scanRing(me)
+
+	go scanRing(me, stopChan)
 
 	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
 	rpc.Register(successor)

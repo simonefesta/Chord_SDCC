@@ -95,45 +95,56 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	id := arg.Id
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
+	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
+	fmt.Printf("Sono '%d',stampo i nodi ad inizio, vediamo se c'è ancora quello tolto.\n", id)
+	fmt.Println(Nodes)
+
 	for k := range Nodes {
 		keys = append(keys, k)
+		if id == k {
+			idInNodes = true
+		}
 	}
-	sort.Ints(keys)
+	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
+		fmt.Printf("caso true per %d", id)
+		sort.Ints(keys)
+		//fmt.Printf("FT per id: %d \n", id)
+		fmt.Println(Nodes)
+		fingerTable := make([]int, m+1)
+		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 
-	fingerTable := make([]int, m+1)
-	//fmt.Printf("\n ANALISI DEL NODO %d", id)
+		for i := 1; i <= m; i++ {
+			// Calcola id + 2^(i-1) mod (2^m)
+			val := (id + (1 << (i - 1))) % (1 << m)
+			//fmt.Printf("\n val = %d = %d + %d mod %d", val, id, (1 << (i - 1)), (1 << m))
+			foundSuccessor := false
 
-	for i := 1; i <= m; i++ {
-		// Calcola id + 2^(i-1) mod (2^m)
-		val := (id + (1 << (i - 1))) % (1 << m)
-		//fmt.Printf("\n val = %d = %d + %d mod %d", val, id, (1 << (i - 1)), (1 << m))
-		foundSuccessor := false
+			for _, k := range keys { //sono ordinate
+				//fmt.Printf("\n comparazione tra k %d e val %d \n", k, val)
 
-		for _, k := range keys { //sono ordinate
-			//fmt.Printf("\n comparazione tra k %d e val %d \n", k, val)
+				if val <= k { // il PRIMO NODO >k è il successore
+					//fmt.Printf("\n VA BENE tra k %d e val %d \n", k, val)
 
-			if val <= k { // il PRIMO NODO >k è il successore
-				//fmt.Printf("\n VA BENE tra k %d e val %d \n", k, val)
+					fingerTable[i] = k
+					foundSuccessor = true
 
-				fingerTable[i] = k
-				foundSuccessor = true
+					break
 
-				break
-
+				}
+			}
+			if !foundSuccessor { //se non ho trovato nessun successore, allora è una risorsa del primo nodo.
+				fingerTable[i] = keys[0]
 			}
 		}
-		if !foundSuccessor { //se non ho trovato nessun successore, allora è una risorsa del primo nodo.
-			fingerTable[i] = keys[0]
+		fingerTable[0] = arg.Id
+		fmt.Printf("Finger Table per %d ", id)
+		for i := 1; i <= m; i++ {
+			fmt.Printf("<%d,%d> ", i, fingerTable[i])
 		}
-	}
-	fingerTable[0] = arg.Id
-	fmt.Printf("Finger Table per %d ", id)
-	for i := 1; i <= m; i++ {
-		fmt.Printf("<%d,%d > ", i, fingerTable[i])
-	}
-	fmt.Printf("\n\n")
+		fmt.Printf("\n\n")
 
-	*reply = fingerTable
+		*reply = fingerTable
+	}
 	return nil
 
 }
@@ -151,46 +162,50 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
+	isInNodes := false
 	for k := range Nodes {
 		keys = append(keys, k)
+		if id == k {
+			isInNodes = true
+		}
 	}
 	//adesso in keys ho tutte le chiavi 'k'
+	if isInNodes {
+		sort.Ints(keys)
+		Nodes[id] = arg.Value //metto il nodo in Nodes
+		var latestKey int
+		for _, k := range keys {
+			//fmt.Println("<key,value>", k, Nodes[k])
+			latestKey = k
 
-	sort.Ints(keys)
-	Nodes[id] = arg.Value //metto il nodo in Nodes
-	var latestKey int
-	for _, k := range keys {
-		//fmt.Println("<key,value>", k, Nodes[k])
-		latestKey = k
-
-	}
-
-	prevKey := keys[0]
-	//cerco il successore
-	for _, k := range keys { //sono ordinate
-		if id < k { //appena trovo che id è minore di una certa chiave, tale chiave è il successore
-			reply.Successor = Nodes[k]
-			if id == keys[0] { //se sto analizzando il primo nodo, allora il pre
-				reply.Predecessor = Nodes[latestKey]
-			} else {
-				reply.Predecessor = Nodes[prevKey]
-			}
-
-			return nil
-
-		} else if id != k {
-			prevKey = k
 		}
 
-	} //sono il più grande
+		prevKey := keys[0]
+		//cerco il successore
+		for _, k := range keys { //sono ordinate
+			if id < k { //appena trovo che id è minore di una certa chiave, tale chiave è il successore
+				reply.Successor = Nodes[k]
+				if id == keys[0] { //se sto analizzando il primo nodo, allora il pre
+					reply.Predecessor = Nodes[latestKey]
+				} else {
+					reply.Predecessor = Nodes[prevKey]
+				}
 
-	reply.Successor = Nodes[keys[0]]
-	reply.Predecessor = Nodes[prevKey]
+				return nil
 
-	/*fmt.Println("Fuori ciclo pred", Nodes[prevKey], "key = ", prevKey)
-	fmt.Println("*****FINE REFRESH NEIGHBORS************", id)
-	fmt.Println("")*/
+			} else if id != k {
+				prevKey = k
+			}
 
+		} //sono il più grande
+
+		reply.Successor = Nodes[keys[0]]
+		reply.Predecessor = Nodes[prevKey]
+
+		/*fmt.Println("Fuori ciclo pred", Nodes[prevKey], "key = ", prevKey)
+		fmt.Println("*****FINE REFRESH NEIGHBORS************", id)
+		fmt.Println("")*/
+	}
 	return nil
 }
 
@@ -225,14 +240,16 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	removedNode := Nodes[idNodo]
 	//neighbors := new(NeighborsReply)
 	var result string
+	delete(Nodes, idNodo)
+	fmt.Print("STAMPO NODES\n ")
+	fmt.Print(Nodes)
 
-	fmt.Printf("Devo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
+	fmt.Printf("\nDevo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
 
-	client, err := rpc.DialHTTP("tcp", removedNode) //contatto il predecessore
+	client, err := rpc.DialHTTP("tcp", removedNode) //contatto il nodo
 	if err != nil {
 		log.Fatal("Client connection error ask node 2 contact: ", err)
 	}
-	fmt.Printf("per ora nessun errore")
 
 	err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
 	if err != nil {
@@ -240,8 +257,15 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 	}
 
-	delete(Nodes, idNodo)
-	fmt.Print(Nodes)
+	/*err = client.Call("Successor.CloseConn", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	if err != nil {
+		log.Fatal("Client invocation error nella chiusura connessione ", err)
+
+	}*/
+
+	//delete(Nodes, idNodo)
+	fmt.Print("STAMPO NODES 2\n ")
+	fmt.Print(Nodes, "\n\n\n\n")
 
 	return nil
 
