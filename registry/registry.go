@@ -96,8 +96,8 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
-	fmt.Printf("Sono '%d',stampo i nodi ad inizio, vediamo se c'è ancora quello tolto.\n", id)
-	fmt.Println(Nodes)
+	//fmt.Printf("Sono '%d',stampo i nodi ad inizio, vediamo se c'è ancora quello tolto.\n", id)
+	//fmt.Println(Nodes)
 
 	for k := range Nodes {
 		keys = append(keys, k)
@@ -106,7 +106,7 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 		}
 	}
 	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
-		fmt.Printf("caso true per %d", id)
+		//fmt.Printf("caso true per %d", id)
 		sort.Ints(keys)
 		//fmt.Printf("FT per id: %d \n", id)
 		fmt.Println(Nodes)

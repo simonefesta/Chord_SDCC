@@ -1,0 +1,2 @@
+node:
+docker build -t nodetest:tag -f DockerFiles/node/Dockerfile .

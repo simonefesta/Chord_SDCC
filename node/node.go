@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
-	"os"
 	"strconv"
 	"time"
 )
@@ -327,13 +326,33 @@ func (t *Successor) CloseConn(idNodo int, result *string) error {
 }
 
 func main() {
-	arg := os.Args
+	/*
+		arg := os.Args
+		if len(arg) < 2 {
+			log.Fatal("Invocazione con argomento ip:port")
+		} //secondo argomento indirizzoIp 127.0.0.4:8084 */
 
-	if len(arg) < 2 {
-		log.Fatal("Invocazione con argomento ip:port")
-	} //secondo argomento indirizzoIp 127.0.0.4:8084
+	//TEST senza immettere valori
+	ipAddress, err := getLocalIP()
+	if err != nil {
+		fmt.Println("Errore nell'ottenere l'indirizzo IP:", err)
+		return
+	}
 
-	me := newNode(arg[1])
+	// Ottieni una porta disponibile per l'ascolto
+	port, err := getAvailablePort()
+	if err != nil {
+		fmt.Println("Errore nell'ottenere la porta:", err)
+		return
+	}
+
+	// Utilizza l'indirizzo IP e la porta ottenuti per configurare il nodo
+	fmt.Printf("Indirizzo IP: %s, Porta: %s\n", ipAddress, port)
+
+	ipPortString := fmt.Sprintf("%s:%s", ipAddress, port)
+
+	me := newNode(ipPortString)
+	//me := newNode(arg[1])
 	neightbors := getNeighbors(me.Ip) //successore nodo creato
 	me.Successor = neightbors.Successor
 	me.Id = sha_adapted(me.Ip)
@@ -359,4 +378,27 @@ func main() {
 	}
 	http.Serve(listener, nil)
 
+}
+
+// test per ip e porta
+func getLocalIP() (string, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP.String(), nil
+}
+
+func getAvailablePort() (string, error) {
+	l, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return "", err
+	}
+	defer l.Close()
+
+	addr := l.Addr().(*net.TCPAddr)
+	return fmt.Sprintf("%d", addr.Port), nil
 }
