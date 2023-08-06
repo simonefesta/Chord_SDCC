@@ -240,6 +240,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 }
 
 func (t *Successor) SearchObject(arg *Arg, reply *string) error {
+
 	idRisorsa := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.Predecessor)
 	isFound := false
@@ -256,7 +257,12 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
 		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
 			fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
-			if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) {
+			if (node.Id < idRisorsa) && (idRisorsa <= node.Finger[1]) {
+				nodoContactId = node.Finger[1]
+				fmt.Printf("Ho trovato %d ", nodoContactId)
+				isFound = true
+				break
+			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //nel primo if inoltro al successore, nel secondo caso esamino la ft.
 				nodoContactId = node.Finger[i]
 				fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
@@ -299,7 +305,7 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			fmt.Printf("FINE DEI GIOCHI")
 			return
 		default:
-			time.Sleep(20 * time.Second)
+			time.Sleep(10 * time.Second)
 			neightbors := refreshNeighbors(me) //successore nodo creato
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
