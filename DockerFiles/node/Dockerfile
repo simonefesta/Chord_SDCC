@@ -7,6 +7,8 @@ WORKDIR /app
 COPY ./node/node.go /app/node.go
 COPY ./node/sha_adapted.go /app/sha_adapted.go
 
+EXPOSE 8005
+
 RUN go build node.go sha_adapted.go
 
 ENTRYPOINT [ "./node"]

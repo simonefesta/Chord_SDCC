@@ -6,12 +6,18 @@ services:
       dockerfile: ./DockerFiles/registry/Dockerfile  # Percorso corretto per il Dockerfile del server
     ports:
       - "1234:1234"  # Mappa la porta 1234 del server del container all'host
-    # Altri comandi o opzioni del server, se necessario
-
+    networks:
+      - my_network
 
   node:
     build:
       context: ./  # Percorso corretto per il contesto del Dockerfile del server
       dockerfile: ./DockerFiles/node/Dockerfile  # Percorso corretto per il Dockerfile del server
-    # Altri comandi o opzioni del nodo, se necessario
+    ports:
+      - "8005:8005"  # Mappa la porta 8005 del server del container all'host
+    networks:
+      - my_network
 
+networks:
+  my_network:
+    driver: bridge

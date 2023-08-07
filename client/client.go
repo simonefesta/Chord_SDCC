@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/rpc"
 	"os"
 )
@@ -34,12 +36,14 @@ func main() {
 			keyboardArgoment.Value = scanner.Text()
 
 			//devo connettermi per inserire questo oggetto
-			client, err := rpc.DialHTTP("tcp", ":1234")
+			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
 			if err != nil {
-				log.Fatal("Errore connessione client ", err)
+				log.Fatal("Errore connessione client registry", err)
 			}
 			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo ":1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
+
+			fmt.Println("Connesso al registry!")
 
 			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {
@@ -50,11 +54,21 @@ func main() {
 			//fmt.Println("Registry return chord node ha restituito nodo RANDOM ", result)
 
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
-
+			fmt.Printf("Contatto ")
+			fmt.Println(result)
 			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
 			if err != nil {
-				log.Fatal("Errore connessione client ", err)
+				var opErr *net.OpError
+				if errors.As(err, &opErr) {
+					// Errore specifico dell'operazione di rete
+					log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+				} else {
+					// Altro tipo di errore
+					log.Fatal("Errore connessione client nodo da contattare: ", err)
+				}
 			}
+
+			fmt.Println("Connesso al nodo!")
 
 			//fmt.Println("Ho trovato ", result)
 
@@ -71,7 +85,7 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
-			client, err := rpc.DialHTTP("tcp", ":1234")
+			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}
@@ -98,7 +112,7 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
-			client, err := rpc.DialHTTP("tcp", ":1234")
+			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}

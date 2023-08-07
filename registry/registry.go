@@ -223,7 +223,6 @@ func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
 	rand.NewSource(time.Now().Unix())
 
 	n := rand.Int() % len(keys)
-	//fmt.Printf("\n ho scelto %d \n", Nodes[keys[n]])
 	*reply = Nodes[keys[n]]
 
 	return nil

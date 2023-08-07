@@ -340,16 +340,17 @@ func main() {
 	}
 
 	// Ottieni una porta disponibile per l'ascolto
-	port, err := getAvailablePort()
+	/*port, err := getAvailablePort()
 	if err != nil {
 		fmt.Println("Errore nell'ottenere la porta:", err)
 		return
-	}
+	}*/
 
+	//println(os.Hostname())
 	// Utilizza l'indirizzo IP e la porta ottenuti per configurare il nodo
-	fmt.Printf("Indirizzo IP: %s, Porta: %s\n", ipAddress, port)
+	fmt.Printf("Indirizzo IP: %s, Porta: %s\n", ipAddress, "8005")
 
-	ipPortString := fmt.Sprintf("%s:%s", ipAddress, port)
+	ipPortString := fmt.Sprintf("%s:%s", ipAddress, "8005")
 
 	me := newNode(ipPortString)
 	//me := newNode(arg[1])
@@ -376,7 +377,12 @@ func main() {
 	if err != nil {
 		log.Fatal("Listener error in node.go :", err)
 	}
-	http.Serve(listener, nil)
+	fmt.Printf("in ascolto su %s", me.Ip)
+
+	err = http.Serve(listener, nil)
+	if err != nil {
+		log.Fatal("Errore nel server HTTP: ", err)
+	}
 
 }
 
@@ -392,6 +398,7 @@ func getLocalIP() (string, error) {
 	return localAddr.IP.String(), nil
 }
 
+/*
 func getAvailablePort() (string, error) {
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -401,4 +408,4 @@ func getAvailablePort() (string, error) {
 
 	addr := l.Addr().(*net.TCPAddr)
 	return fmt.Sprintf("%d", addr.Port), nil
-}
+}*/
