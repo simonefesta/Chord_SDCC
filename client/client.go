@@ -56,7 +56,7 @@ func main() {
 			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
 			fmt.Printf("Contatto ")
 			fmt.Println(result)
-			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+			client, err = rpc.DialHTTP("tcp", ":8005") //contatto il nodo che ho trovato prima.
 			if err != nil {
 				var opErr *net.OpError
 				if errors.As(err, &opErr) {
