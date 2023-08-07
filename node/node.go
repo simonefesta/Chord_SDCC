@@ -47,9 +47,9 @@ func getNeighbors(ip string) *Neighbors {
 	arg.Value = ip
 	arg.Id = sha_adapted(ip)
 
-	client, err := rpc.DialHTTP("tcp", "localhost:1234")
+	client, err := rpc.DialHTTP("tcp", "registry:1234")
 	if err != nil {
-		log.Fatal("Client connection error: ", err)
+		log.Fatal("Client connection error getNeighbors: ", err)
 	}
 	err = client.Call("Registry.Neighbors", arg, &result)
 	if err != nil {
@@ -65,7 +65,7 @@ func CreateFingerTable(node *Node) error {
 	arg.Value = node.Ip
 	arg.Id = sha_adapted(node.Ip)
 
-	client, err := rpc.DialHTTP("tcp", "localhost:1234")
+	client, err := rpc.DialHTTP("tcp", "registry:1234")
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}
@@ -85,7 +85,7 @@ func refreshNeighbors(node *Node) *Neighbors {
 	arg.Value = node.Ip
 	arg.Id = sha_adapted(node.Ip)
 
-	client, err := rpc.DialHTTP("tcp", "localhost:1234")
+	client, err := rpc.DialHTTP("tcp", "registry:1234")
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}
@@ -274,7 +274,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
-		client, err := rpc.DialHTTP("tcp", "localhost:1234")
+		client, err := rpc.DialHTTP("tcp", "registry:1234")
 		if err != nil {
 			log.Fatal("Client connection error ask node 2 contact: ", err)
 		}

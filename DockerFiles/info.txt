@@ -1,2 +1,6 @@
-node:
+node, partendo dalla cartella Chord_SDCC:
 docker build -t nodetest:tag -f DockerFiles/node/Dockerfile .
+
+docker build -t registrytest:tag -f DockerFiles/registry/Dockerfile .
+docker run -p 8005:8005 registrytest:tag
+

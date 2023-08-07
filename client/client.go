@@ -34,11 +34,11 @@ func main() {
 			keyboardArgoment.Value = scanner.Text()
 
 			//devo connettermi per inserire questo oggetto
-			client, err := rpc.DialHTTP("tcp", "localhost:1234")
+			client, err := rpc.DialHTTP("tcp", ":1234")
 			if err != nil {
 				log.Fatal("Errore connessione client ", err)
 			}
-			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo "localhost:1234" come server RPC di destinazione */
+			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo ":1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
 
 			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
@@ -71,7 +71,7 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
-			client, err := rpc.DialHTTP("tcp", "localhost:1234")
+			client, err := rpc.DialHTTP("tcp", ":1234")
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}
@@ -98,7 +98,7 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
-			client, err := rpc.DialHTTP("tcp", "localhost:1234")
+			client, err := rpc.DialHTTP("tcp", ":1234")
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}
