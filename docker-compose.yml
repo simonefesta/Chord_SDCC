@@ -1,4 +1,5 @@
-version: '3'
+version: "3"
+
 services:
   registry:
     build:
@@ -9,12 +10,48 @@ services:
     networks:
       - my_network
 
-  node:
+  node1:
     build:
       context: ./  # Percorso corretto per il contesto del Dockerfile del server
-      dockerfile: ./DockerFiles/node/Dockerfile  # Percorso corretto per il Dockerfile del server
+      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server
     ports:
       - "8005:8005"  # Mappa la porta 8005 del server del container all'host
+    networks:
+      - my_network
+
+  node2:
+    build:
+      context: ./  # Percorso corretto per il contesto del Dockerfile del server
+      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server
+    ports:
+      - "8006:8005"  # Mappa la porta 8005 del server del container all'host
+    networks:
+      - my_network
+
+  node3:
+    build:
+      context: ./  # Percorso corretto per il contesto del Dockerfile del server
+      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server
+    ports:
+      - "8007:8005"  # Mappa la porta 8005 del server del container all'host
+    networks:
+      - my_network
+
+  node4:
+    build:
+      context: ./  # Percorso corretto per il contesto del Dockerfile del server
+      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server
+    ports:
+      - "8008:8005"  # Mappa la porta 8005 del server del container all'host
+    networks:
+      - my_network
+
+  node5:
+    build:
+      context: ./  # Percorso corretto per il contesto del Dockerfile del server
+      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server
+    ports:
+      - "8009:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
 

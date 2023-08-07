@@ -95,7 +95,7 @@ func main() {
 				log.Fatal("Client invocation error: ", err)
 			}
 
-			client, err = rpc.DialHTTP("tcp", result) //mi connetto a questo nodo random
+			client, err = rpc.DialHTTP("tcp", ":8005") //contatto il nodo che ho trovato prima.
 			if err != nil {
 				log.Fatal("Client connection error2: ", err)
 			}

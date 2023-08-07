@@ -304,7 +304,7 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			fmt.Printf("FINE DEI GIOCHI")
 			return
 		default:
-			time.Sleep(10 * time.Second)
+			time.Sleep(20 * time.Second)
 			neightbors := refreshNeighbors(me) //successore nodo creato
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
