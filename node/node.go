@@ -123,7 +123,6 @@ func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 
 func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo quando ELIMINO UN NODO
 
-	close(stopChan)
 	//fmt.Printf("chiudo la sessione")
 
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
@@ -143,6 +142,8 @@ func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo
 	if err != nil {
 		log.Fatal("Client invocation error nel registry.neighbors: ", err)
 	}
+
+	close(stopChan) //chiudi connessione
 
 	*result = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' è stato rimosso."
 
@@ -214,17 +215,50 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 	if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
 		//primo pezzo è se c'è un solo nodo, il secondo pezzo è il caso 'comune', il terzo pezzo è quando sto a fine anello, quindi dove può verificarsi che il successore di '9' sia '1', per via del modulo. (caso 2 libretto)
 		if node.Objects[idRisorsa] != "" {
-			*reply = "oggetto con id:  '" + node.Objects[idRisorsa] + "' già esistente!"
+			*reply = "oggetto con id:  '" + node.Objects[idRisorsa] + "' già esistente!\n"
 		} else {
 			node.Objects[idRisorsa] = arg.Value
-			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.Value, idRisorsa)
+			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
 			//fmt.Println("pred - succ", node.Predecessor, node.Successor) //precedessore e successore
 			fmt.Println(node.Objects)
 		}
-	} else { //devo provare col successivo! NB: QUI ANCORA NO FINGER TABLE, QUINDI ME LI GIRO TUTTI
-		//fmt.Printf("l'oggetto non è di mia competenza, contatto ")
-		//fmt.Println(node.Successor)
-		client, err := rpc.DialHTTP("tcp", node.Successor)
+	} else {
+
+		isFound := false
+
+		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
+		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
+			//fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
+			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
+				nodoContactId = node.Finger[1]
+				//fmt.Printf("Ho trovato %d ", nodoContactId)
+				isFound = true
+				break
+			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
+				nodoContactId = node.Finger[i]
+				//fmt.Printf("Ho trovato %d ", nodoContactId)
+				isFound = true
+				break
+			}
+		}
+		if !isFound {
+			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
+		}
+		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
+		//adesso devo chiedere al registry chi è questo nodo con indice
+		var nodoContact string
+		client, err := rpc.DialHTTP("tcp", "registry:1234")
+		if err != nil {
+			log.Fatal("Client connection error ask node 2 contact: ", err)
+		}
+		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
+		if err != nil {
+			log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		}
+
+		//fmt.Printf("contatto ")
+		//fmt.Println(nodoContact)
+		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
 			log.Fatal("client connection AddObject successor error", err)
 		}
@@ -245,10 +279,10 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	isFound := false
 	if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) { //se lo statement è true, vuol dire che se l'oggetto esiste, devo averlo io.
 		if node.Objects[idRisorsa] == "" { //se non c'è
-			*reply = "L'oggetto cercato non è presente."
+			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
 			fmt.Println("L'oggetto con id cercato è", node.Objects[idRisorsa], "posseduto dal nodo", strconv.Itoa(node.Id))
-			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'. "
+			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
 		}
 	} else {
 		//devo lavorare da qui
@@ -271,7 +305,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if !isFound {
 			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
 		}
-		fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
+		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", "registry:1234")
@@ -296,28 +330,6 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	}
 	return nil
 }
-
-/*func (t *Successor) DeleteObject(arg *Arg, reply *string) error {
-
-	t.SearchObject(arg, reply)
-	strValue := *reply
-	fmt.Printf("nodo %d per la cancellazione ", node.Id)
-	// Convertire la stringa in un intero
-	intValue, err := strconv.Atoi(strValue)
-	if err != nil {
-		fmt.Println("Errore nella conversione:", err)
-	} else {
-		fmt.Println("Valore intero:", intValue)
-		if (intValue >= node.Id) && (intValue < sha_adapted(node.Successor)) {
-			delete(node.Objects, intValue)
-			fmt.Println(node.Objects)
-
-		}
-
-	}
-	return nil
-
-}*/
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
 	isPrint := true

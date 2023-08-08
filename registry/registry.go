@@ -10,7 +10,6 @@ import (
 	"net/rpc"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -26,8 +25,9 @@ type Argclient struct {
 }
 
 type Arg struct {
-	Id    int
-	Value string
+	Id     int
+	Value  string
+	Choice int
 }
 
 type Registry string //fa parte della registrazione anche successor
@@ -98,8 +98,6 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
-	//fmt.Printf("Sono '%d',stampo i nodi ad inizio, vediamo se c'è ancora quello tolto.\n", id)
-	//fmt.Println(Nodes)
 
 	for k := range Nodes {
 		keys = append(keys, k)
@@ -108,13 +106,12 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 		}
 	}
 	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
-		//fmt.Printf("caso true per %d", id)
 		sort.Ints(keys)
 		//fmt.Printf("FT per id: %d \n", id)
 		//fmt.Println(Nodes)
 		fingerTable := make([]int, m+1)
-		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 
+		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 		for i := 1; i <= m; i++ {
 			// Calcola id + 2^(i-1) mod (2^m)
 			val := (id + (1 << (i - 1))) % (1 << m)
@@ -139,11 +136,6 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 			}
 		}
 		fingerTable[0] = arg.Id
-		/*fmt.Printf("Finger Table per %d : ", id)
-		for i := 1; i <= m; i++ {
-			fmt.Printf("<%d,%d> ", i, fingerTable[i])
-		}
-		fmt.Printf("\n\n")*/
 
 		*reply = fingerTable
 	}
@@ -211,7 +203,9 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 	return nil
 }
 
-func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
+func (t *Registry) EnterRing(arg *Arg, reply *string) error {
+	choice := arg.Choice
+
 	if len(Nodes) == 0 {
 		return errors.New("non ci sono nodi nell'anello")
 	}
@@ -222,15 +216,53 @@ func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
 	}
 
 	rand.NewSource(time.Now().Unix())
-
+	//*reply
 	n := rand.Int() % len(keys)
-	parts := strings.Split(Nodes[keys[n]], ":")
-	if len(parts) == 2 {
-		portPart := ":" + parts[1]
-		fmt.Printf("ritorno %s", portPart)
-		*reply = portPart
-	} else {
-		fmt.Println("Formato nodo non valido")
+	var result string
+	nodeContact := Nodes[keys[n]]
+
+	switch choice {
+	case 1:
+		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
+		if err != nil {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
+				// Errore specifico dell'operazione di rete
+				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+			} else {
+				// Altro tipo di errore
+				log.Fatal("Errore connessione client nodo da contattare: ", err)
+			}
+		}
+
+		err = client.Call("Successor.AddObject", arg, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
+		if err != nil {
+			// Gestisci l'errore se si verifica
+			log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+		}
+
+		*reply = result
+
+	case 2:
+		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
+		if err != nil {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
+				// Errore specifico dell'operazione di rete
+				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+			} else {
+				// Altro tipo di errore
+				log.Fatal("Errore connessione client nodo da contattare: ", err)
+			}
+		}
+
+		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+		if err != nil {
+			log.Fatal("Client invocation error: ", err)
+		}
+
+		*reply = result
+
 	}
 
 	return nil
@@ -244,15 +276,16 @@ func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
+	//fmt.Println(Nodes)
+	if len(Nodes) <= 2 {
+		*reply = "Raggiunto il lower bound di 2 nodi nella rete. Impossibile cancellarne altri."
+		return nil
 
-	if Nodes[idNodo] != "" {
+	}
+	if isNodePresent(Nodes, idNodo) {
 
 		removedNode := Nodes[idNodo]
 		var result string
-		delete(Nodes, idNodo)
-		fmt.Print("Nodi dopo la rimozione : ")
-		fmt.Print(Nodes)
-		fmt.Print("\n")
 
 		//fmt.Printf("\nDevo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
 
@@ -266,8 +299,14 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 			log.Fatal("Client invocation error nel registry.removeNode: ", err)
 
 		}
+
+		delete(Nodes, idNodo)
+		//fmt.Print("Nodi dopo la rimozione : ")
+		//fmt.Print(Nodes)
+
+		*reply = "Il nodo avente id: '" + strconv.Itoa(idNodo) + "' è stato eliminato.\n"
 	} else {
-		*reply = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' non è presente e dunque non è eliminabile."
+		*reply = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' non è presente e dunque non è eliminabile.\n"
 	}
 
 	return nil
@@ -285,4 +324,13 @@ func main() {
 	}
 	http.Serve(l, nil) //avvia un server HTTP che ascolta sul listener l e gestisce le richieste in arrivo utilizzando il gestore predefinito di http.DefaultServeMux.
 
+}
+
+func isNodePresent(nodes map[int]string, idNodo int) bool {
+	for _, node := range nodes {
+		if node == Nodes[idNodo] {
+			return true
+		}
+	}
+	return false
 }
