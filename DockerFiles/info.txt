@@ -1,3 +1,4 @@
+0) aprire docker
 1) python generate_compose.py <numero containers>
 
 2) da [Chord_SDCC]:
@@ -8,6 +9,5 @@
 	./client
 4) per chiudere tutto:
 	docker stop $(docker ps -q)
-
-
+	docker-compose down
 

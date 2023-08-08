@@ -1,6 +1,8 @@
 package main
 
-import "crypto/sha1"
+import (
+	"crypto/sha256"
+)
 
 const (
 	N int = 32
@@ -8,7 +10,7 @@ const (
 
 func sha_adapted(key string) int {
 	//l'hash deve essere nell'intorno (0, risorse rete)
-	h := sha1.New()         //oggetto hash
+	h := sha256.New()       //oggetto hash
 	h.Write([]byte(key))    //scrivo key in byte in h
 	hashedKey := h.Sum(nil) //calcolo hash
 	res := byte(N - 1)      //scrivo in byte N-1

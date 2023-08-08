@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/rpc"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -65,7 +67,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	//adesso in keys ho tutte le chiavi 'k'
 
 	sort.Ints(keys)
-	fmt.Println(keys)
+	//fmt.Println(keys)
 	Nodes[id] = arg.Value //metto il nodo in Nodes
 	fmt.Println(Nodes)
 
@@ -109,7 +111,7 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 		//fmt.Printf("caso true per %d", id)
 		sort.Ints(keys)
 		//fmt.Printf("FT per id: %d \n", id)
-		fmt.Println(Nodes)
+		//fmt.Println(Nodes)
 		fingerTable := make([]int, m+1)
 		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 
@@ -137,11 +139,11 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 			}
 		}
 		fingerTable[0] = arg.Id
-		fmt.Printf("Finger Table per %d ", id)
+		/*fmt.Printf("Finger Table per %d : ", id)
 		for i := 1; i <= m; i++ {
 			fmt.Printf("<%d,%d> ", i, fingerTable[i])
 		}
-		fmt.Printf("\n\n")
+		fmt.Printf("\n\n")*/
 
 		*reply = fingerTable
 	}
@@ -156,7 +158,7 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 		Nodes[id] = arg.Value
 		reply.Successor = arg.Value   //successore di sè stesso
 		reply.Predecessor = arg.Value //predecessore di me stesso
-		fmt.Println(Nodes)
+		//fmt.Println(Nodes)
 		return nil
 	}
 
@@ -210,12 +212,11 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 }
 
 func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
-	//fmt.Printf("\n nodi %d \n", len(Nodes))
 	if len(Nodes) == 0 {
 		return errors.New("non ci sono nodi nell'anello")
 	}
 	keys := make([]int, 0, len(Nodes))
-	fmt.Print(keys)
+	//fmt.Print(keys)
 	for k := range Nodes {
 		keys = append(keys, k)
 	}
@@ -223,7 +224,14 @@ func (t *Registry) ReturnRandomNode(arg *Arg, reply *string) error {
 	rand.NewSource(time.Now().Unix())
 
 	n := rand.Int() % len(keys)
-	*reply = Nodes[keys[n]]
+	parts := strings.Split(Nodes[keys[n]], ":")
+	if len(parts) == 2 {
+		portPart := ":" + parts[1]
+		fmt.Printf("ritorno %s", portPart)
+		*reply = portPart
+	} else {
+		fmt.Println("Formato nodo non valido")
+	}
 
 	return nil
 }
@@ -236,35 +244,31 @@ func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
-	removedNode := Nodes[idNodo]
-	//neighbors := new(NeighborsReply)
-	var result string
-	delete(Nodes, idNodo)
-	fmt.Print("STAMPO NODES\n ")
-	fmt.Print(Nodes)
 
-	fmt.Printf("\nDevo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
+	if Nodes[idNodo] != "" {
 
-	client, err := rpc.DialHTTP("tcp", removedNode) //contatto il nodo
-	if err != nil {
-		log.Fatal("Client connection error ask node 2 contact: ", err)
+		removedNode := Nodes[idNodo]
+		var result string
+		delete(Nodes, idNodo)
+		fmt.Print("Nodi dopo la rimozione : ")
+		fmt.Print(Nodes)
+		fmt.Print("\n")
+
+		//fmt.Printf("\nDevo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
+
+		client, err := rpc.DialHTTP("tcp", removedNode) //contatto il nodo
+		if err != nil {
+			log.Fatal("Client connection error ask node 2 contact: ", err)
+		}
+
+		err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
+		if err != nil {
+			log.Fatal("Client invocation error nel registry.removeNode: ", err)
+
+		}
+	} else {
+		*reply = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' non è presente e dunque non è eliminabile."
 	}
-
-	err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
-	if err != nil {
-		log.Fatal("Client invocation error nel registry.removeNode: ", err)
-
-	}
-
-	/*err = client.Call("Successor.CloseConn", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
-	if err != nil {
-		log.Fatal("Client invocation error nella chiusura connessione ", err)
-
-	}*/
-
-	//delete(Nodes, idNodo)
-	fmt.Print("STAMPO NODES 2\n ")
-	fmt.Print(Nodes, "\n\n\n\n")
 
 	return nil
 

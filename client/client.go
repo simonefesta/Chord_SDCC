@@ -21,9 +21,10 @@ func main() {
 	var result string
 	var resp int
 
-	fmt.Println("1. Inserisci un nuovo oggetto")
+	fmt.Println("1. Aggiungi oggetto")
 	fmt.Println("2. Cerca un oggetto")
-	fmt.Println("3. Rimuovi un nodo")
+	//fmt.Println("3. Rimuovi un oggetto")
+	fmt.Println("4. Rimuovi un nodo")
 
 	for {
 		fmt.Print("Inserisci scelta: ")
@@ -43,20 +44,15 @@ func main() {
 			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo ":1234" come server RPC di destinazione */
 			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
 
-			fmt.Println("Connesso al registry!")
-
 			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {
 				// Gestisci l'errore se si verifica
 				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
-			//fmt.Println("Registry return chord node ha restituito nodo RANDOM ", result)
+			fmt.Printf("contatto: %s", result)
 
-			//mi riconnetto per chiedere un altro metodo (posso farlo una volta sola?)
-			fmt.Printf("Contatto ")
-			fmt.Println(result)
-			client, err = rpc.DialHTTP("tcp", ":8005") //contatto il nodo che ho trovato prima.
+			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
 			if err != nil {
 				var opErr *net.OpError
 				if errors.As(err, &opErr) {
@@ -67,10 +63,6 @@ func main() {
 					log.Fatal("Errore connessione client nodo da contattare: ", err)
 				}
 			}
-
-			fmt.Println("Connesso al nodo!")
-
-			//fmt.Println("Ho trovato ", result)
 
 			err = client.Call("Successor.AddObject", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 			if err != nil {
@@ -85,29 +77,78 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
+			//devo connettermi per inserire questo oggetto
 			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
 			if err != nil {
-				log.Fatal("Client connection error: ", err)
+				log.Fatal("Errore connessione client registry", err)
 			}
+			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo ":1234" come server RPC di destinazione */
+			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
 
-			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo un nodo random
+			err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {
-				log.Fatal("Client invocation error: ", err)
+				// Gestisci l'errore se si verifica
+				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
-			client, err = rpc.DialHTTP("tcp", ":8005") //contatto il nodo che ho trovato prima.
+			fmt.Printf("contatto: %s", result)
+
+			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
 			if err != nil {
-				log.Fatal("Client connection error2: ", err)
+				var opErr *net.OpError
+				if errors.As(err, &opErr) {
+					// Errore specifico dell'operazione di rete
+					log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+				} else {
+					// Altro tipo di errore
+					log.Fatal("Errore connessione client nodo da contattare: ", err)
+				}
 			}
 
-			err = client.Call("Successor.SearchObject", keyboardArgoment, &result)
+			err = client.Call("Successor.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 			if err != nil {
 				log.Fatal("Client invocation error: ", err)
 			}
 
 			fmt.Println(result)
 
-		case 3:
+		/*case 3:
+		fmt.Print("Digita l'id dell'oggetto da rimuovere: ")
+
+		fmt.Scanln(&keyboardArgoment.Id)
+
+		//devo connettermi per inserire questo oggetto
+		client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
+		if err != nil {
+			log.Fatal("Errore connessione client registry", err)
+		}
+
+		err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+		if err != nil {
+			// Gestisci l'errore se si verifica
+			log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+		}
+
+		client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+		if err != nil {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
+				// Errore specifico dell'operazione di rete
+				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+			} else {
+				// Altro tipo di errore
+				log.Fatal("Errore connessione client nodo da contattare: ", err)
+			}
+		}
+
+		err = client.Call("Successor.DeleteObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+		if err != nil {
+			log.Fatal("Client invocation error: ", err)
+		}
+
+		fmt.Println(result)*/
+
+		case 4:
 			fmt.Print("Digita l'id del nodo da rimuovere: ")
 
 			fmt.Scanln(&keyboardArgoment.Id)
@@ -116,22 +157,16 @@ func main() {
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}
-			//var nodoContact string
-
-			/*err = client.Call("Registry.GiveNodeLookup", keyboardArgoment, &nodoContact) //contatto il nodo che voglio rimuovere
-			if err != nil {
-				log.Fatal("Client invocation error nel registry.neighbors: ", err)
-			}*/
 
 			err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
 			if err != nil {
 				log.Fatal("Client invocation error: ", err)
 			}
 
-			fmt.Println(result)
+			fmt.Println("eliminazione completata.")
 
 		default:
-			println("Devi selezionare una delle due scelte digitando 1 o 2")
+			println("Scegliere una delle quattro opzioni, digitando '1','2','3' o '4'.")
 		}
 	}
 }

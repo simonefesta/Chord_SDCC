@@ -46,6 +46,7 @@ func getNeighbors(ip string) *Neighbors {
 	arg := new(Arg)
 	arg.Value = ip
 	arg.Id = sha_adapted(ip)
+	//fmt.Printf("il mio id è %d \n", arg.Id)
 
 	client, err := rpc.DialHTTP("tcp", "registry:1234")
 	if err != nil {
@@ -100,8 +101,7 @@ func refreshNeighbors(node *Node) *Neighbors {
 
 func (t *Successor) UpdatePredecessor(nodoChiamante *Node, reply *string) error {
 	node.Successor = nodoChiamante.Successor
-	fmt.Printf("Il mio nuovo successore e' %s", node.Successor)
-	CreateFingerTable(node) //devo rigenerarla
+	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
 
 	return nil
 
@@ -109,23 +109,22 @@ func (t *Successor) UpdatePredecessor(nodoChiamante *Node, reply *string) error 
 
 func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 	node.Predecessor = nodoChiamante.Predecessor
-	fmt.Printf("Il mio nuovo predecessore e' %s", node.Predecessor)
+	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
 		node.Objects[key] = value
 		fmt.Printf("Ho un nuovo elemento: %s \n", value)
 		delete(nodoChiamante.Objects, key)
 
 	}
-	CreateFingerTable(node) //devo rigenerarla
 
 	return nil
 
 }
 
-func (t *Successor) UpdateNeighbors(idNodo int, result *string) error {
+func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo quando ELIMINO UN NODO
 
 	close(stopChan)
-	fmt.Printf("chiudo la sessione")
+	//fmt.Printf("chiudo la sessione")
 
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
 	if err != nil {
@@ -145,7 +144,7 @@ func (t *Successor) UpdateNeighbors(idNodo int, result *string) error {
 		log.Fatal("Client invocation error nel registry.neighbors: ", err)
 	}
 
-	fmt.Printf("Aggiornamento completato\n")
+	*result = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' è stato rimosso."
 
 	return nil
 
@@ -175,7 +174,7 @@ func (t *Successor) Keys(arg *ArgId, reply *map[int]string) error {
 	for k := range node.Objects {
 		if (arg.Id <= idPredecessor && (k <= arg.Id || k > idPredecessor)) || (k <= arg.Id && k > idPredecessor) { //in pratica vedo se gli oggetti sono compresi tra il nodo precedente e quello attuale. Però perchè il metodo è "Successor" se non fa nulla?
 			(*reply)[k] = node.Objects[k] //dereferenzio reply (quindi vado sulla mappa) e poi mi sposto di k.
-			delete(node.Objects, k)       //perchè toglierlo dalla lista??
+			delete(node.Objects, k)
 		}
 	}
 
@@ -211,7 +210,6 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 	idRisorsa := sha_adapted(arg.Value)            //id risorsa da aggiugere
 	idPredecessor := sha_adapted(node.Predecessor) //id del nodo che ha chiamato il successore (quindi il precedente del successore è il nodo che ha chiamato il successore)
 	idSuccessor := sha_adapted(node.Successor)
-	//l'idea è questa: risorsa = 3, il nodo chiamante è 1, il successivo è 5. chiamo '5' e gli dico di aggiungere risorsa '3' e che il suo nodo precedente è '1'.
 
 	if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
 		//primo pezzo è se c'è un solo nodo, il secondo pezzo è il caso 'comune', il terzo pezzo è quando sto a fine anello, quindi dove può verificarsi che il successore di '9' sia '1', per via del modulo. (caso 2 libretto)
@@ -220,10 +218,12 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		} else {
 			node.Objects[idRisorsa] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'", arg.Value, idRisorsa)
-			fmt.Println("pred - succ", node.Predecessor, node.Successor) //precedessore e successore
+			//fmt.Println("pred - succ", node.Predecessor, node.Successor) //precedessore e successore
 			fmt.Println(node.Objects)
 		}
 	} else { //devo provare col successivo! NB: QUI ANCORA NO FINGER TABLE, QUINDI ME LI GIRO TUTTI
+		//fmt.Printf("l'oggetto non è di mia competenza, contatto ")
+		//fmt.Println(node.Successor)
 		client, err := rpc.DialHTTP("tcp", node.Successor)
 		if err != nil {
 			log.Fatal("client connection AddObject successor error", err)
@@ -243,27 +243,27 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	idRisorsa := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.Predecessor)
 	isFound := false
-	if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
-		if node.Objects[idRisorsa] == "" {
-			*reply = "L'oggetto cercato non è presente"
+	if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) { //se lo statement è true, vuol dire che se l'oggetto esiste, devo averlo io.
+		if node.Objects[idRisorsa] == "" { //se non c'è
+			*reply = "L'oggetto cercato non è presente."
 		} else {
+			fmt.Println("L'oggetto con id cercato è", node.Objects[idRisorsa], "posseduto dal nodo", strconv.Itoa(node.Id))
 			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'. "
 		}
 	} else {
-		// l'oggetto cercato non è nel nodo successore, quindi devo 'iterare', nb: questo poi dovrò farlo con la finger table}
 		//devo lavorare da qui
 		//trovo nella finger table il nodo da contattare
 		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
 		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
-			fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
-			if (node.Id < idRisorsa) && (idRisorsa <= node.Finger[1]) {
+			//fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
+			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
 				nodoContactId = node.Finger[1]
-				fmt.Printf("Ho trovato %d ", nodoContactId)
+				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
-			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //nel primo if inoltro al successore, nel secondo caso esamino la ft.
+			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
 				nodoContactId = node.Finger[i]
-				fmt.Printf("Ho trovato %d ", nodoContactId)
+				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
 			}
@@ -283,7 +283,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 			log.Fatal("Client invocation error nel registry.neighbors: ", err)
 		}
 
-		fmt.Printf("Il registry mi ha detto che l'id del nodo %d è associato al nodo %s", nodoContactId, nodoContact)
+		//fmt.Printf("Il registry mi ha detto che l'id del nodo %d è associato al nodo %s", nodoContactId, nodoContact)
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
@@ -297,58 +297,64 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 	return nil
 }
 
+/*func (t *Successor) DeleteObject(arg *Arg, reply *string) error {
+
+	t.SearchObject(arg, reply)
+	strValue := *reply
+	fmt.Printf("nodo %d per la cancellazione ", node.Id)
+	// Convertire la stringa in un intero
+	intValue, err := strconv.Atoi(strValue)
+	if err != nil {
+		fmt.Println("Errore nella conversione:", err)
+	} else {
+		fmt.Println("Valore intero:", intValue)
+		if (intValue >= node.Id) && (intValue < sha_adapted(node.Successor)) {
+			delete(node.Objects, intValue)
+			fmt.Println(node.Objects)
+
+		}
+
+	}
+	return nil
+
+}*/
+
 func scanRing(me *Node, stopChan <-chan struct{}) {
+	isPrint := true
 	for {
 		select {
 		case <-stopChan:
-			fmt.Printf("FINE DEI GIOCHI")
+			fmt.Printf("Connessione interrotta correttamente.")
 			return
 		default:
-			time.Sleep(20 * time.Second)
+			time.Sleep(5 * time.Second)
 			neightbors := refreshNeighbors(me) //successore nodo creato
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
 				me.Predecessor = neightbors.Predecessor
 			}
 			CreateFingerTable(me)
-			fmt.Println(me.Finger)
-
+			if isPrint { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
+				fmt.Printf("FT[%d] : ", node.Id)
+				for i := 1; i <= len(node.Finger)-1; i++ {
+					fmt.Printf("<%d,%d> ", i, node.Finger[i])
+				}
+				fmt.Printf("\n")
+			}
+			isPrint = !isPrint
 		}
 
 	}
 
 }
 
-func (t *Successor) CloseConn(idNodo int, result *string) error {
-	fmt.Print("Mi hanno contattato per uccidermi!!!!")
-	close(stopChan)
-	return nil
-}
-
 func main() {
-	/*
-		arg := os.Args
-		if len(arg) < 2 {
-			log.Fatal("Invocazione con argomento ip:port")
-		} //secondo argomento indirizzoIp 127.0.0.4:8084 */
 
-	//TEST senza immettere valori
 	ipAddress, err := getLocalIP()
 	if err != nil {
 		fmt.Println("Errore nell'ottenere l'indirizzo IP:", err)
 		return
 	}
-
-	// Ottieni una porta disponibile per l'ascolto
-	/*port, err := getAvailablePort()
-	if err != nil {
-		fmt.Println("Errore nell'ottenere la porta:", err)
-		return
-	}*/
-
-	//println(os.Hostname())
-	// Utilizza l'indirizzo IP e la porta ottenuti per configurare il nodo
-	fmt.Printf("Indirizzo IP: %s, Porta: %s\n", ipAddress, "8005")
 
 	ipPortString := fmt.Sprintf("%s:%s", ipAddress, "8005")
 
@@ -359,14 +365,9 @@ func main() {
 	me.Id = sha_adapted(me.Ip)
 	me.Predecessor = neightbors.Predecessor
 
-	//pred := getPredecessor(me) //cerco il precedente
-	//me.predecessor = pred
+	fmt.Printf("Io sono %d, Indirizzo IP:%s\n", me.Id, ipPortString)
 
-	fmt.Println("Io sono ", me.Id)
-	//fmt.Println("il mio successore è ", me.successor)
-	//fmt.Println("il mio predecessore è", me.predecessor)
 	me.Objects = getKeys(me)
-	//CreateFingerTable(me)
 
 	go scanRing(me, stopChan)
 
@@ -377,7 +378,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Listener error in node.go :", err)
 	}
-	fmt.Printf("in ascolto su %s", me.Ip)
 
 	err = http.Serve(listener, nil)
 	if err != nil {
@@ -397,15 +397,3 @@ func getLocalIP() (string, error) {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String(), nil
 }
-
-/*
-func getAvailablePort() (string, error) {
-	l, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-
-	addr := l.Addr().(*net.TCPAddr)
-	return fmt.Sprintf("%d", addr.Port), nil
-}*/

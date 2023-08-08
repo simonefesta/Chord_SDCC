@@ -25,7 +25,9 @@ def generate_docker_compose(num_containers):
             f.write(f'    ports:\n')
             f.write(f'      - "{8004 + i}:8005"  # Mappa la porta 8005 del server del container all\'host\n')
             f.write(f'    networks:\n')
-            f.write(f'      - my_network\n\n')
+            f.write(f'      - my_network\n')
+            f.write(f'    depends_on:\n')
+            f.write(f'      - registry\n\n')
 
         f.write('networks:\n')
         f.write('  my_network:\n')

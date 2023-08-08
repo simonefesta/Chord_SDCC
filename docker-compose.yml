@@ -18,6 +18,8 @@ services:
       - "8005:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
+    depends_on:
+      - registry
 
   node2:
     build:
@@ -27,6 +29,8 @@ services:
       - "8006:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
+    depends_on:
+      - registry
 
   node3:
     build:
@@ -36,6 +40,8 @@ services:
       - "8007:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
+    depends_on:
+      - registry
 
   node4:
     build:
@@ -45,6 +51,8 @@ services:
       - "8008:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
+    depends_on:
+      - registry
 
   node5:
     build:
@@ -54,6 +62,8 @@ services:
       - "8009:8005"  # Mappa la porta 8005 del server del container all'host
     networks:
       - my_network
+    depends_on:
+      - registry
 
 networks:
   my_network:
