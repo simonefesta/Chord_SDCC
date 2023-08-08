@@ -23,11 +23,10 @@ func main() {
 
 	fmt.Println("1. Aggiungi oggetto")
 	fmt.Println("2. Cerca un oggetto")
-	//fmt.Println("3. Rimuovi un oggetto")
-	fmt.Println("4. Rimuovi un nodo")
+	fmt.Println("3. Rimuovi un nodo")
 
 	for {
-		fmt.Print("Inserisci scelta: ")
+		fmt.Print("\nInserisci scelta: ")
 		fmt.Scanln(&resp) //acquisisco la risposta da tastiera
 		switch int(resp) {
 		case 1:
@@ -71,6 +70,7 @@ func main() {
 			}
 
 			fmt.Println(result)
+			fmt.Printf("\n")
 
 		case 2:
 			fmt.Print("Digita l'id dell'oggetto da cercare: ")
@@ -91,8 +91,6 @@ func main() {
 				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
 			}
 
-			fmt.Printf("contatto: %s", result)
-
 			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
 			if err != nil {
 				var opErr *net.OpError
@@ -111,44 +109,9 @@ func main() {
 			}
 
 			fmt.Println(result)
+			fmt.Printf("\n")
 
-		/*case 3:
-		fmt.Print("Digita l'id dell'oggetto da rimuovere: ")
-
-		fmt.Scanln(&keyboardArgoment.Id)
-
-		//devo connettermi per inserire questo oggetto
-		client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
-		if err != nil {
-			log.Fatal("Errore connessione client registry", err)
-		}
-
-		err = client.Call("Registry.ReturnRandomNode", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
-		if err != nil {
-			// Gestisci l'errore se si verifica
-			log.Fatal("Errore nella chiamata di metodo RPC: ", err)
-		}
-
-		client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
-		if err != nil {
-			var opErr *net.OpError
-			if errors.As(err, &opErr) {
-				// Errore specifico dell'operazione di rete
-				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
-			} else {
-				// Altro tipo di errore
-				log.Fatal("Errore connessione client nodo da contattare: ", err)
-			}
-		}
-
-		err = client.Call("Successor.DeleteObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
-		if err != nil {
-			log.Fatal("Client invocation error: ", err)
-		}
-
-		fmt.Println(result)*/
-
-		case 4:
+		case 3:
 			fmt.Print("Digita l'id del nodo da rimuovere: ")
 
 			fmt.Scanln(&keyboardArgoment.Id)
@@ -163,7 +126,8 @@ func main() {
 				log.Fatal("Client invocation error: ", err)
 			}
 
-			fmt.Println("eliminazione completata.")
+			fmt.Println("Eliminazione completata.")
+			fmt.Printf("\n")
 
 		default:
 			println("Scegliere una delle quattro opzioni, digitando '1','2','3' o '4'.")
