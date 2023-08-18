@@ -21,7 +21,7 @@ type Node struct {
 
 type Arg struct { //ciò che passo ai metodi
 	Id    int
-	Value string
+	Value string //ip if is node, object if is resource
 }
 
 var RegistryFromInside string = "registry:1234"

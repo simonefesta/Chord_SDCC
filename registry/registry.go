@@ -15,11 +15,6 @@ import (
 
 var Nodes = make(map[int]string)
 
-// argomenti per richiesta rpc client
-type Argclient struct {
-	Ip string
-}
-
 type Arg struct {
 	Id     int
 	Value  string
