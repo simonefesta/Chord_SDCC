@@ -342,8 +342,13 @@ func main() {
 		fmt.Println("Errore nell'ottenere l'indirizzo IP:", err)
 		return
 	}
+	ipPort, err := getAvailablePort()
+	if err != nil {
+		fmt.Println("Errore nell'ottenere la porta:", err)
+		return
+	}
 
-	ipPortString := fmt.Sprintf("%s:%s", ipAddress, "8005")
+	ipPortString := fmt.Sprintf("%s:%s", ipAddress, ipPort)
 
 	me := newNode(ipPortString)
 	neightbors := getNeighbors(me.Ip) //successore nodo creato

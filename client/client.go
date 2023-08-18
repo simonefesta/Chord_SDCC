@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"strconv"
 )
 
 type KeyboardArgoment struct { //ciò che viene preso da tastiera se vogliamo inserire un oggetto
@@ -21,6 +22,7 @@ func main() {
 	keyboardArgoment := new(KeyboardArgoment) //creo nuova istanza di keyboardArgoment
 	var result string
 	var resp int
+	var input string
 
 	fmt.Println("1. Aggiungi oggetto")
 	fmt.Println("2. Cerca un oggetto")
@@ -53,38 +55,52 @@ func main() {
 		case 2:
 			fmt.Print("Digita l'id dell'oggetto da cercare: ")
 
-			fmt.Scanln(&keyboardArgoment.Id)
+			fmt.Scanln(&input)
 			keyboardArgoment.Choice = 2
 
-			//devo connettermi per cercare questo oggetto
-			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+			id, err := strconv.Atoi(input)
 			if err != nil {
-				log.Fatal("Errore connessione client registry", err)
-			}
+				fmt.Println("Input non valido. Devi inserire un numero intero.")
 
-			err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
-			if err != nil {
-				// Gestisci l'errore se si verifica
-				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+			} else {
+				keyboardArgoment.Id = id
+
+				//devo connettermi per cercare questo oggetto
+				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+				if err != nil {
+					log.Fatal("Errore connessione client registry", err)
+				}
+
+				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+				if err != nil {
+					// Gestisci l'errore se si verifica
+					log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+				}
+				fmt.Println(result)
 			}
-			fmt.Println(result)
 
 		case 3:
 			fmt.Print("Digita l'id del nodo da rimuovere: ")
+			fmt.Scanln(&input)
 
-			fmt.Scanln(&keyboardArgoment.Id)
-
-			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+			id, err := strconv.Atoi(input)
 			if err != nil {
-				log.Fatal("Client connection error: ", err)
-			}
+				fmt.Println("Input non valido. Devi inserire un numero intero.")
 
-			err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
-			if err != nil {
-				log.Fatal("Client invocation error: ", err)
-			}
+			} else {
+				keyboardArgoment.Id = id
+				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+				if err != nil {
+					log.Fatal("Client connection error: ", err)
+				}
 
-			fmt.Println(result)
+				err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
+				if err != nil {
+					log.Fatal("Client invocation error: ", err)
+				}
+
+				fmt.Println(result)
+			}
 
 		default:
 			println("Scegliere una delle quattro opzioni, digitando '1','2','3'.")
