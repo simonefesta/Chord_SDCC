@@ -4,12 +4,11 @@ FROM golang:1.20-alpine
 # The /app directory should act as the main application directory
 WORKDIR /app
 
+COPY ./config.json /app/config.json 
 COPY ./node/node.go /app/node.go
-COPY ./node/sha_adapted.go /app/sha_adapted.go
+COPY ./node/utils.go /app/utils.go
 
-EXPOSE 8005
-
-RUN go build node.go sha_adapted.go
+RUN go build node.go utils.go
 
 ENTRYPOINT [ "./node"]
 

@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-const (
-	m int = 5 //, 2^m ci fornisce il numero massimo di nodi.
-)
-
 var Nodes = make(map[int]string)
 
 // argomenti per richiesta rpc client
@@ -38,8 +34,17 @@ type NeighborsReply struct {
 	Predecessor string
 }
 
+var m int //numero di bits
+
 func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	id := arg.Id
+	var err error
+
+	m, err = ReadFromConfig() //leggo "m" dal json
+	if err != nil {
+		fmt.Println("Error reading m:", err)
+		return err
+	}
 
 	if len(Nodes) == 0 { //primo nodo
 		Nodes[id] = arg.Value
@@ -51,7 +56,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	if Nodes[id] != "" { //verifica se l'elemento con l'indice id nell'array Nodes non è una stringa vuota.
 		reply.Successor = "" //se sto registrando un id già esistente, non posso aggiungerlo
 		reply.Predecessor = ""
-		return errors.New("esiste già un nodo con questo ID")
+		return errors.New("esiste già un nodo con questo ID (o si è verificata una collisione!)")
 
 	}
 	if len(Nodes) >= (1 << m) { //limite massimo nodi raggiunto
@@ -95,6 +100,14 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 
 func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	id := arg.Id
+	//fmt.Printf("in finger ho m = %d\n", m)
+	/*m, err := ReadFromConfig() //leggo "m" dal json
+	if err != nil {
+		fmt.Println("Error reading m:", err)
+		return err
+	}*/
+	//fmt.Printf("in finger ho DOPO m = %d\n", m)
+
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
@@ -301,8 +314,7 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 		}
 
 		delete(Nodes, idNodo)
-		//fmt.Print("Nodi dopo la rimozione : ")
-		//fmt.Print(Nodes)
+		fmt.Printf("Nodi dopo la rimozione : %v\n", Nodes)
 
 		*reply = "Il nodo avente id: '" + strconv.Itoa(idNodo) + "' è stato eliminato.\n"
 	} else {

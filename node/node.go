@@ -16,14 +16,15 @@ type Node struct {
 	Predecessor string
 	Successor   string
 	Objects     map[int]string //mappo le chiavi intere(id) in valori (string) //secondo me è il contrario, perchè le chiavi sono le righe, i valori gli id.
-	//IN REALTA OBJECT SONO LE RISORSE NON E' FINGER TABLE
-	Finger []int
+	Finger      []int
 }
 
 type Arg struct { //ciò che passo ai metodi
 	Id    int
 	Value string
 }
+
+var RegistryFromInside string = "registry:1234"
 
 var node *Node
 
@@ -46,9 +47,7 @@ func getNeighbors(ip string) *Neighbors {
 	arg := new(Arg)
 	arg.Value = ip
 	arg.Id = sha_adapted(ip)
-	//fmt.Printf("il mio id è %d \n", arg.Id)
-
-	client, err := rpc.DialHTTP("tcp", "registry:1234")
+	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
 		log.Fatal("Client connection error getNeighbors: ", err)
 	}
@@ -65,8 +64,7 @@ func CreateFingerTable(node *Node) error {
 	arg := new(Arg)
 	arg.Value = node.Ip
 	arg.Id = sha_adapted(node.Ip)
-
-	client, err := rpc.DialHTTP("tcp", "registry:1234")
+	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}
@@ -86,7 +84,7 @@ func refreshNeighbors(node *Node) *Neighbors {
 	arg.Value = node.Ip
 	arg.Id = sha_adapted(node.Ip)
 
-	client, err := rpc.DialHTTP("tcp", "registry:1234")
+	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
 	}
@@ -112,7 +110,7 @@ func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
 		node.Objects[key] = value
-		fmt.Printf("Ho un nuovo elemento: %s \n", value)
+		fmt.Printf("Node %d, ho un nuovo elemento: %s \n", node.Id, value)
 		delete(nodoChiamante.Objects, key)
 
 	}
@@ -145,7 +143,7 @@ func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo
 
 	close(stopChan) //chiudi connessione
 
-	*result = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' è stato rimosso."
+	//*result = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' è stato rimosso."
 
 	return nil
 
@@ -196,7 +194,7 @@ func getKeys(me *Node) map[int]string {
 	//io chiedo le chiavi/mi interfaccio sempre col successor
 	client, err := rpc.DialHTTP("tcp", me.Successor)
 	if err != nil {
-		log.Fatal("client error connection during getKeys", err)
+		log.Fatal("client error connection during getKeys ", err)
 	}
 
 	err = client.Call("Successor.Keys", arg, &reply) //ora gestisco questa chiamata
@@ -247,7 +245,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
-		client, err := rpc.DialHTTP("tcp", "registry:1234")
+		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
 			log.Fatal("Client connection error ask node 2 contact: ", err)
 		}
@@ -281,7 +279,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if node.Objects[idRisorsa] == "" { //se non c'è
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
-			fmt.Println("L'oggetto con id cercato è", node.Objects[idRisorsa], "posseduto dal nodo", strconv.Itoa(node.Id))
+			//fmt.Println("L'oggetto con id cercato è", node.Objects[idRisorsa], "posseduto dal nodo", strconv.Itoa(node.Id))
 			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
 		}
 	} else {
@@ -308,7 +306,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
-		client, err := rpc.DialHTTP("tcp", "registry:1234")
+		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
 			log.Fatal("Client connection error ask node 2 contact: ", err)
 		}
@@ -347,9 +345,9 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			}
 			CreateFingerTable(me)
 			if isPrint { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
-				fmt.Printf("FT[%d] : ", node.Id)
-				for i := 1; i <= len(node.Finger)-1; i++ {
-					fmt.Printf("<%d,%d> ", i, node.Finger[i])
+				fmt.Printf("FT[%d] : ", me.Id)
+				for i := 1; i <= len(me.Finger)-1; i++ {
+					fmt.Printf("<%d,%d> ", i, me.Finger[i])
 				}
 				fmt.Printf("\n")
 			}
@@ -368,10 +366,16 @@ func main() {
 		return
 	}
 
+	/*ipPort, err := getAvailablePort()
+	if err != nil {
+		fmt.Println("Errore nell'ottenere la porta:", err)
+		return
+	}
+	fmt.Println(ipPort)*/
+
 	ipPortString := fmt.Sprintf("%s:%s", ipAddress, "8005")
 
 	me := newNode(ipPortString)
-	//me := newNode(arg[1])
 	neightbors := getNeighbors(me.Ip) //successore nodo creato
 	me.Successor = neightbors.Successor
 	me.Id = sha_adapted(me.Ip)
@@ -396,16 +400,4 @@ func main() {
 		log.Fatal("Errore nel server HTTP: ", err)
 	}
 
-}
-
-// test per ip e porta
-func getLocalIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String(), nil
 }

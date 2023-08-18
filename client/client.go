@@ -14,6 +14,8 @@ type KeyboardArgoment struct { //ciò che viene preso da tastiera se vogliamo in
 	Choice int
 }
 
+var RegistryFromOutside string = "0.0.0.0:1234"
+
 func main() {
 
 	keyboardArgoment := new(KeyboardArgoment) //creo nuova istanza di keyboardArgoment
@@ -34,8 +36,10 @@ func main() {
 			scanner.Scan()                        //leggo ciò che è stato inserito
 			keyboardArgoment.Value = scanner.Text()
 			keyboardArgoment.Choice = 1
+			_ = scanner.Text()
+
 			//devo connettermi per inserire questo oggetto
-			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
+			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 			if err != nil {
 				log.Fatal("Errore connessione client registry", err)
 			}
@@ -56,7 +60,7 @@ func main() {
 			keyboardArgoment.Choice = 2
 
 			//devo connettermi per cercare questo oggetto
-			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
+			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 			if err != nil {
 				log.Fatal("Errore connessione client registry", err)
 			}
@@ -73,7 +77,7 @@ func main() {
 
 			fmt.Scanln(&keyboardArgoment.Id)
 
-			client, err := rpc.DialHTTP("tcp", "0.0.0.0:1234")
+			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 			if err != nil {
 				log.Fatal("Client connection error: ", err)
 			}

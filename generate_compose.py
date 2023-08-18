@@ -1,5 +1,15 @@
 # Script per generare il file docker-compose.yml dinamicamente
 
+import sys
+import json
+
+
+
+def get_m_from_config():
+    with open('config.json') as config_file:
+        config_data = json.load(config_file)
+        return config_data['bits']
+
 def generate_docker_compose(num_containers):
     # Apri il file docker-compose.yml in modalità scrittura
     with open('docker-compose.yml', 'w') as f:
@@ -9,8 +19,8 @@ def generate_docker_compose(num_containers):
         # Configurazione del servizio registry
         f.write('  registry:\n')
         f.write('    build:\n')
-        f.write('      context: ./  # Percorso corretto per il contesto del Dockerfile del server\n')
-        f.write('      dockerfile: ./DockerFiles/registry/Dockerfile  # Percorso corretto per il Dockerfile del server\n')
+        f.write('      context: ./  #Parto dalla root del progetto\n')
+        f.write('      dockerfile: ./DockerFiles/registry/Dockerfile  #path del docker file associato al registry\n')
         f.write('    ports:\n')
         f.write('      - "1234:1234"  # Mappa la porta 1234 del server del container all\'host\n')
         f.write('    networks:\n')
@@ -20,8 +30,8 @@ def generate_docker_compose(num_containers):
         for i in range(1, num_containers + 1):
             f.write(f'  node{i}:\n')
             f.write(f'    build:\n')
-            f.write(f'      context: ./  # Percorso corretto per il contesto del Dockerfile del server\n')
-            f.write(f'      dockerfile: ./DockerFiles/node/Dockerfile  # Percorto corretto per il Dockerfile del server\n')
+            f.write(f'      context: ./ \n')
+            f.write(f'      dockerfile: ./DockerFiles/node/Dockerfile  \n')
             f.write(f'    ports:\n')
             f.write(f'      - "{8004 + i}:8005"  # Mappa la porta 8005 del server del container all\'host\n')
             f.write(f'    networks:\n')
@@ -34,16 +44,5 @@ def generate_docker_compose(num_containers):
         f.write('    driver: bridge\n')
 
 if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2:
-        print("Usage: python generate_compose.py <num_containers>")
-        sys.exit(1)
-
-    try:
-        num_containers = int(sys.argv[1])
-    except ValueError:
-        print("Invalid input for num_containers. Please provide a valid integer.")
-        sys.exit(1)
-
+    num_containers = get_m_from_config()
     generate_docker_compose(num_containers)
