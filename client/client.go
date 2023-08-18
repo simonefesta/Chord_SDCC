@@ -32,19 +32,16 @@ func main() {
 		switch int(resp) {
 		case 1:
 			fmt.Print("Oggetto da inserire: ")
-			scanner := bufio.NewScanner(os.Stdin) //meglio di scanln, se devo acquisire frasi o altro.
-			scanner.Scan()                        //leggo ciò che è stato inserito
+			scanner := bufio.NewScanner(os.Stdin)
+			scanner.Scan() //leggo ciò che è stato inserito
 			keyboardArgoment.Value = scanner.Text()
 			keyboardArgoment.Choice = 1
-			_ = scanner.Text()
+			_ = scanner.Text() //pulizia buffer
 
-			//devo connettermi per inserire questo oggetto
 			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 			if err != nil {
 				log.Fatal("Errore connessione client registry", err)
 			}
-			/*Nell'esempio sopra, DialHTTP viene utilizzato per creare una connessione RPC utilizzando il protocollo TCP e l'indirizzo ":1234" come server RPC di destinazione */
-			/*Una volta stabilita la connessione, puoi utilizzare l'oggetto client per chiamare i metodi esposti dal server RPC utilizzando client.Call o altre funzioni di rpc.Client. */
 
 			err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {

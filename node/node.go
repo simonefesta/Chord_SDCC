@@ -121,8 +121,6 @@ func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 
 func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo quando ELIMINO UN NODO
 
-	//fmt.Printf("chiudo la sessione")
-
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
 	if err != nil {
 		log.Fatal("Client connection error: ", err)
@@ -143,8 +141,6 @@ func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo
 
 	close(stopChan) //chiudi connessione
 
-	//*result = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' è stato rimosso."
-
 	return nil
 
 }
@@ -162,11 +158,6 @@ type ArgId struct {
 	Predecessor string
 }
 
-/*
-Qui immagino questa situazione:
-un "nuovo" nodo nel sistema, che conosce precedente e successivo, deve prendersi le risorse che gli spettano.
-Quindi quello che fa è vedere quale delle risorse che ha il successivo sono destinate a lui (se nodo nuovo è '1', precedente è '9' e successivo '5', il nuovo nodo prende le risorse di '5' che sono maggiori di 9 e minori uguali ad 1.
-*/
 func (t *Successor) Keys(arg *ArgId, reply *map[int]string) error {
 	(*reply) = make(map[int]string)
 	idPredecessor := sha_adapted(arg.Predecessor)
@@ -217,7 +208,6 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		} else {
 			node.Objects[idRisorsa] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
-			//fmt.Println("pred - succ", node.Predecessor, node.Successor) //precedessore e successore
 			fmt.Println(node.Objects)
 		}
 	} else {
@@ -226,15 +216,12 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 
 		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
 		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
-			//fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
 			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
 				nodoContactId = node.Finger[1]
-				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
 			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
 				nodoContactId = node.Finger[i]
-				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
 			}
@@ -242,7 +229,6 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		if !isFound {
 			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
 		}
-		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
@@ -254,8 +240,6 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 			log.Fatal("Client invocation error nel registry.neighbors: ", err)
 		}
 
-		//fmt.Printf("contatto ")
-		//fmt.Println(nodoContact)
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
 			log.Fatal("client connection AddObject successor error", err)
@@ -279,7 +263,6 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if node.Objects[idRisorsa] == "" { //se non c'è
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
-			//fmt.Println("L'oggetto con id cercato è", node.Objects[idRisorsa], "posseduto dal nodo", strconv.Itoa(node.Id))
 			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
 		}
 	} else {
@@ -287,15 +270,12 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		//trovo nella finger table il nodo da contattare
 		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
 		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
-			//fmt.Printf("Sto cercando nella finger, esamino %d \n", node.Finger[i])
 			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
 				nodoContactId = node.Finger[1]
-				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
 			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
 				nodoContactId = node.Finger[i]
-				//fmt.Printf("Ho trovato %d ", nodoContactId)
 				isFound = true
 				break
 			}
@@ -303,7 +283,6 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if !isFound {
 			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
 		}
-		//fmt.Printf("Io sono %d, non possiedo la risorsa con id %d, la vado a chiedere al nodo di ID: %d con stato %t \n", node.Id, idRisorsa, nodoContactId, isFound)
 		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
@@ -314,8 +293,6 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if err != nil {
 			log.Fatal("Client invocation error nel registry.neighbors: ", err)
 		}
-
-		//fmt.Printf("Il registry mi ha detto che l'id del nodo %d è associato al nodo %s", nodoContactId, nodoContact)
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
@@ -365,13 +342,6 @@ func main() {
 		fmt.Println("Errore nell'ottenere l'indirizzo IP:", err)
 		return
 	}
-
-	/*ipPort, err := getAvailablePort()
-	if err != nil {
-		fmt.Println("Errore nell'ottenere la porta:", err)
-		return
-	}
-	fmt.Println(ipPort)*/
 
 	ipPortString := fmt.Sprintf("%s:%s", ipAddress, "8005")
 

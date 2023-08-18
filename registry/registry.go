@@ -100,13 +100,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 
 func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	id := arg.Id
-	//fmt.Printf("in finger ho m = %d\n", m)
-	/*m, err := ReadFromConfig() //leggo "m" dal json
-	if err != nil {
-		fmt.Println("Error reading m:", err)
-		return err
-	}*/
-	//fmt.Printf("in finger ho DOPO m = %d\n", m)
 
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
@@ -120,22 +113,18 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 	}
 	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
 		sort.Ints(keys)
-		//fmt.Printf("FT per id: %d \n", id)
-		//fmt.Println(Nodes)
+
 		fingerTable := make([]int, m+1)
 
 		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 		for i := 1; i <= m; i++ {
 			// Calcola id + 2^(i-1) mod (2^m)
 			val := (id + (1 << (i - 1))) % (1 << m)
-			//fmt.Printf("\n val = %d = %d + %d mod %d", val, id, (1 << (i - 1)), (1 << m))
 			foundSuccessor := false
 
 			for _, k := range keys { //sono ordinate
-				//fmt.Printf("\n comparazione tra k %d e val %d \n", k, val)
 
-				if val <= k { // il PRIMO NODO >k è il successore
-					//fmt.Printf("\n VA BENE tra k %d e val %d \n", k, val)
+				if val <= k {
 
 					fingerTable[i] = k
 					foundSuccessor = true
@@ -159,11 +148,9 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 	id := arg.Id
 	if len(Nodes) <= 1 { //primo nodo
-		//fmt.Println("Sotto caso Primo nodo")
 		Nodes[id] = arg.Value
 		reply.Successor = arg.Value   //successore di sè stesso
 		reply.Predecessor = arg.Value //predecessore di me stesso
-		//fmt.Println(Nodes)
 		return nil
 	}
 
@@ -182,7 +169,6 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 		Nodes[id] = arg.Value //metto il nodo in Nodes
 		var latestKey int
 		for _, k := range keys {
-			//fmt.Println("<key,value>", k, Nodes[k])
 			latestKey = k
 
 		}
@@ -209,9 +195,6 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 		reply.Successor = Nodes[keys[0]]
 		reply.Predecessor = Nodes[prevKey]
 
-		/*fmt.Println("Fuori ciclo pred", Nodes[prevKey], "key = ", prevKey)
-		fmt.Println("*****FINE REFRESH NEIGHBORS************", id)
-		fmt.Println("")*/
 	}
 	return nil
 }
@@ -223,13 +206,11 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 		return errors.New("non ci sono nodi nell'anello")
 	}
 	keys := make([]int, 0, len(Nodes))
-	//fmt.Print(keys)
 	for k := range Nodes {
 		keys = append(keys, k)
 	}
 
 	rand.NewSource(time.Now().Unix())
-	//*reply
 	n := rand.Int() % len(keys)
 	var result string
 	nodeContact := Nodes[keys[n]]
@@ -289,7 +270,6 @@ func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
-	//fmt.Println(Nodes)
 	if len(Nodes) <= 2 {
 		*reply = "Raggiunto il lower bound di 2 nodi nella rete. Impossibile cancellarne altri."
 		return nil
@@ -299,8 +279,6 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 		removedNode := Nodes[idNodo]
 		var result string
-
-		//fmt.Printf("\nDevo eliminare %d, ovvero %s \n", idNodo, removedNode) //ok, removedNode è quello da togliere.
 
 		client, err := rpc.DialHTTP("tcp", removedNode) //contatto il nodo
 		if err != nil {
