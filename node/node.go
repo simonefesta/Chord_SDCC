@@ -233,7 +233,7 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
-			log.Fatal("Client connection error ask node 2 contact: ", err)
+			log.Fatal("Node not able to contact registry: ", err)
 		}
 		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
 		if err != nil {

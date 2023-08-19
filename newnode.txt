@@ -1,0 +1,9 @@
+docker build -t node7 -f DockerFiles/node/Dockerfile .
+docker run -p 8011:8005 --network=chord_sdcc_my_network --name=node7 node7
+docker start node7 (per riavviarlo se si chiude)
+
+VERSIONE SENZA NOME
+docker build -f DockerFiles/node/Dockerfile .
+docker run -p 8011:8005 --network=chord_sdcc_my_network node
+./start_node.sh 1
+
