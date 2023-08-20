@@ -26,8 +26,8 @@ func main() {
 
 	fmt.Println("1. Aggiungi oggetto")
 	fmt.Println("2. Cerca un oggetto")
-	fmt.Println("3. Rimuovi un nodo")
 	fmt.Println("3. Rimuovi un oggetto")
+	fmt.Println("4. Rimuovi un nodo")
 
 	for {
 		fmt.Print("\nInserisci scelta: ")
@@ -43,15 +43,15 @@ func main() {
 
 			client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 			if err != nil {
-				log.Fatal("Errore connessione client registry", err)
+				log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
 			}
 
 			err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 			if err != nil {
-				// Gestisci l'errore se si verifica
-				log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+				log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 			}
 			fmt.Println(result)
+			client.Close()
 
 		case 2:
 			fmt.Print("Digita l'id dell'oggetto da cercare: ")
@@ -69,45 +69,24 @@ func main() {
 				//devo connettermi per cercare questo oggetto
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
-					log.Fatal("Errore connessione client registry", err)
+					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
 				}
 
 				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 				if err != nil {
 					// Gestisci l'errore se si verifica
-					log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
 				fmt.Println(result)
+				client.Close()
+
 			}
 
 		case 3:
-			fmt.Print("Digita l'id del nodo da rimuovere: ")
-			fmt.Scanln(&input)
-
-			id, err := strconv.Atoi(input)
-			if err != nil {
-				fmt.Println("Input non valido. Devi inserire un numero intero.")
-
-			} else {
-				keyboardArgoment.Id = id
-				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
-				if err != nil {
-					log.Fatal("Client connection error: ", err)
-				}
-
-				err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
-				if err != nil {
-					log.Fatal("Client invocation error: ", err)
-				}
-
-				fmt.Println(result)
-			}
-
-		case 4:
 			fmt.Print("Digita l'id dell'oggetto da rimuovere: ")
 
 			fmt.Scanln(&input)
-			keyboardArgoment.Choice = 4 //per eliminare una chiave, devo cercarla, ma questo già lo faccio nel caso due.
+			keyboardArgoment.Choice = 3 //per eliminare una chiave, devo cercarla, ma questo già lo faccio nel caso due.
 
 			id, err := strconv.Atoi(input)
 			if err != nil {
@@ -119,15 +98,42 @@ func main() {
 				//devo connettermi per cercare questo oggetto
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
-					log.Fatal("Errore connessione client registry", err)
+					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
 				}
 
 				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
 				if err != nil {
 					// Gestisci l'errore se si verifica
-					log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
 				fmt.Println(result)
+				client.Close()
+
+			}
+
+		case 4:
+			fmt.Print("Digita l'id del nodo da rimuovere: ")
+			fmt.Scanln(&input)
+
+			id, err := strconv.Atoi(input)
+			if err != nil {
+				fmt.Println("Input non valido. Devi inserire un numero intero.")
+
+			} else {
+				keyboardArgoment.Id = id
+				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+				if err != nil {
+					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
+				}
+
+				err = client.Call("Registry.RemoveNode", keyboardArgoment, &result)
+				if err != nil {
+					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'RemoveNode' del registry, ", err)
+				}
+
+				fmt.Println(result)
+				client.Close()
+
 			}
 
 		default:

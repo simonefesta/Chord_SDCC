@@ -50,13 +50,14 @@ func getNeighbors(ip string) *Neighbors {
 	arg.Id = sha_adapted(ip)
 	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
-		log.Fatal("Client connection error getNeighbors: ", err)
+		log.Fatal("Errore nodo getNeighbors: non riesco a contattare il registry dall'interno  ", err)
 	}
 	err = client.Call("Registry.Neighbors", arg, &result)
 	if err != nil {
-		log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		log.Fatal("Errore nodo getNeighbors: non riesco a chiamare Registry.Neighbors  ", err)
 	}
 
+	client.Close()
 	return result
 
 }
@@ -67,13 +68,14 @@ func CreateFingerTable(node *Node) error {
 	arg.Id = sha_adapted(node.Ip)
 	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
-		log.Fatal("Client connection error: ", err)
+		log.Fatal("Errore nodo CreateFingerTable: non riesco a contattare il registry dall'interno  ", err)
 	}
 	err = client.Call("Registry.Finger", arg, &node.Finger)
 	if err != nil {
-		log.Fatal("Client invocation error nel registry.Finger: ", err)
+		log.Fatal("Errore nodo CreateFingerTable: non riesco a chiamare Registry.Finger  ", err)
 	}
 
+	client.Close()
 	return nil
 
 }
@@ -87,13 +89,14 @@ func refreshNeighbors(node *Node) *Neighbors {
 
 	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 	if err != nil {
-		log.Fatal("Client connection error: ", err)
+		log.Fatal("Errore nodo refreshNeighbors: non riesco a contattare il registry dall'interno  ", err)
 	}
 	err = client.Call("Registry.RefreshNeighbors", arg, &result)
 	if err != nil {
-		log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		log.Fatal("Errore nodo CreateFingerTable: non riesco a chiamare Registry.RefreshNeighbors  ", err)
 	}
 
+	client.Close()
 	return result
 
 }
@@ -124,23 +127,26 @@ func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo
 
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
 	if err != nil {
-		log.Fatal("Client connection error: ", err)
+		log.Fatal("Errore nodo UpdateNeighbors: non riesco a contattare il predecessore  ", err)
 	}
 	err = client.Call("Successor.UpdatePredecessor", node, &result)
 	if err != nil {
-		log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		log.Fatal("Errore nodo UpdateNeighbors: non riesco a chiamare Registry.RefreshNeighbors  ", err)
 	}
+
+	client.Close()
 
 	client, err = rpc.DialHTTP("tcp", node.Successor)
 	if err != nil {
-		log.Fatal("Client connection error: ", err)
+		log.Fatal("Errore nodo UpdateNeighbors: non riesco a contattare il successore  ", err)
 	}
 	err = client.Call("Successor.UpdateSuccessor", node, &result)
 	if err != nil {
-		log.Fatal("Client invocation error nel registry.neighbors: ", err)
+		log.Fatal("Errore nodo UpdateNeighbors: non riesco a chiamare Successor.UpdateSuccessor ", err)
 	}
 
 	close(stopChan) //chiudi connessione
+	client.Close()
 
 	return nil
 
@@ -186,13 +192,14 @@ func getKeys(me *Node) map[int]string {
 	//io chiedo le chiavi/mi interfaccio sempre col successor
 	client, err := rpc.DialHTTP("tcp", me.Successor)
 	if err != nil {
-		log.Fatal("client error connection during getKeys ", err)
+		log.Fatal("Errore nodo getKeys: non riesco a contattare il successore (getKeys)  ", err)
 	}
 
 	err = client.Call("Successor.Keys", arg, &reply) //ora gestisco questa chiamata
 	if err != nil {
-		log.Fatal("client error during Call 'Successor.Keys procedure", err)
+		log.Fatal("Errore nodo getKeys: non riesco a chiamare Successor.Keys ", err)
 	}
+	client.Close()
 	return reply
 
 }
@@ -234,24 +241,29 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
-			log.Fatal("Node not able to contact registry: ", err)
+			log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
 		}
 		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
 		if err != nil {
-			log.Fatal("Client invocation error nel registry.neighbors: ", err)
+			log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
 		}
+
+		client.Close()
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
-			log.Fatal("client connection AddObject successor error", err)
+			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo trovato sulla FT  ", err)
 		}
 
 		err = client.Call("Successor.AddObject", arg, &reply)
 		if err != nil {
-			log.Fatal("client call AddObject successor error", err)
+			log.Fatal("Errore nodo AddObject: non riesco a chiamare Successor.AddObject ", err)
 		}
 
+		client.Close()
+
 	}
+
 	return nil
 }
 
@@ -294,21 +306,26 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
-			log.Fatal("Client connection error ask node 2 contact: ", err)
+			log.Fatal("Errore nodo SearchObject: non riesco a contattare il registry dall'interno  ", err)
 		}
 		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
 		if err != nil {
-			log.Fatal("Client invocation error nel registry.neighbors: ", err)
+			log.Fatal("Errore nodo SearchObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
 		}
+
+		client.Close()
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
-			log.Fatal("Errore dialHttp nodocontact fingertable", err)
+			log.Fatal("Errore nodo SearchObject: non riesco a contattare il nodo trovato sulla FT  ", err)
 		}
 		err = client.Call("Successor.SearchObject", arg, &reply)
 		if err != nil {
-			log.Fatal("Client call error", err)
+			log.Fatal("Errore nodo SearchObject: non riesco a chiamare Successor.SearchObject ", err)
 		}
+
+		client.Close()
+
 	}
 	return nil
 }

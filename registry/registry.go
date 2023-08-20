@@ -38,8 +38,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 
 	m, err = ReadFromConfig() //leggo "m" dal json
 	if err != nil {
-		fmt.Println("Error reading m:", err)
-		return err
+		log.Fatal("Errore nella lettura del file config.json, ", err)
 	}
 
 	if len(Nodes) == 0 { //primo nodo
@@ -215,64 +214,48 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	case 1:
 		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
 		if err != nil {
-			var opErr *net.OpError
-			if errors.As(err, &opErr) {
-				// Errore specifico dell'operazione di rete
-				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
-			} else {
-				// Altro tipo di errore
-				log.Fatal("Errore connessione client nodo da contattare: ", err)
-			}
+			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
 		}
 
 		err = client.Call("Successor.AddObject", arg, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
 		if err != nil {
 			// Gestisci l'errore se si verifica
-			log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'AddObject', ", err)
 		}
 
 		*reply = result
+		client.Close()
 
 	case 2:
 		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
 		if err != nil {
-			var opErr *net.OpError
-			if errors.As(err, &opErr) {
-				// Errore specifico dell'operazione di rete
-				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
-			} else {
-				// Altro tipo di errore
-				log.Fatal("Errore connessione client nodo da contattare: ", err)
-			}
+			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
+
 		}
 
 		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 		if err != nil {
-			log.Fatal("Client invocation error: ", err)
+			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'SearchObject' (caso 2), ", err)
 		}
 
 		*reply = result
+		client.Close()
 
-	case 4:
-		arg.Type = true
+	case 3:
+		arg.Type = true                                 //true se voglio cercare l'oggetto per rimuoverlo.
 		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
 		if err != nil {
-			var opErr *net.OpError
-			if errors.As(err, &opErr) {
-				// Errore specifico dell'operazione di rete
-				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
-			} else {
-				// Altro tipo di errore
-				log.Fatal("Errore connessione client nodo da contattare: ", err)
-			}
+			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
+
 		}
 
 		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 		if err != nil {
-			log.Fatal("Client invocation error: ", err)
+			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'SearchObject' (caso 3), ", err)
 		}
 
 		*reply = result
+		client.Close()
 
 	}
 
@@ -299,12 +282,12 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 		client, err := rpc.DialHTTP("tcp", removedNode) //contatto il nodo
 		if err != nil {
-			log.Fatal("Client connection error ask node 2 contact: ", err)
+			log.Fatal("Errore nel registry RemoveNode: non riesco a contattere il nodo da rimuovere, ", err)
 		}
 
 		err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
 		if err != nil {
-			log.Fatal("Client invocation error nel registry.removeNode: ", err)
+			log.Fatal("Errore nel registry RemoveNode: non riesco a chiamare la funzione registry.removeNode: ", err)
 
 		}
 
@@ -312,6 +295,8 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 		fmt.Printf("Nodi dopo la rimozione : %v\n", Nodes)
 
 		*reply = "Il nodo avente id: '" + strconv.Itoa(idNodo) + "' è stato eliminato.\n"
+		client.Close()
+
 	} else {
 		*reply = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' non è presente e dunque non è eliminabile.\n"
 	}
