@@ -36,6 +36,6 @@ E' supportata l'aggiunta postuma di un nodo.
 Dalla directory principale, mediante terminale, basterà eseguire il comando ``` ./start_node.sh ```.  
 E' possibile aggiungere ulteriori nodi, uno alla volta, tramite stesso comando, ma, per permettere una corretta gestione delle porte, bisognerà specificare un flag crescente, che parte da 1.
 Ad esempio:
--``` ./start_node.sh ``` istanzia il primo nodo postumo, 
+- ``` ./start_node.sh ``` istanzia il primo nodo postumo, 
 - ``` ./start_node.sh 1``` istanzia il secondo nodo postumo,
 -  ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
