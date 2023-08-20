@@ -22,6 +22,7 @@ type Node struct {
 type Arg struct { //ciò che passo ai metodi
 	Id    int
 	Value string //ip if is node, object if is resource
+	Type  bool
 }
 
 var RegistryFromInside string = "registry:1234"
@@ -263,7 +264,13 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if node.Objects[idRisorsa] == "" { //se non c'è
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
-			*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
+			if arg.Type { //devo rimuovere la chiave
+				delete(node.Objects, idRisorsa)
+				*reply = "L'oggetto con id  '" + strconv.Itoa(idRisorsa) + "' è stato rimosso.\n"
+
+			} else {
+				*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
+			}
 		}
 	} else {
 		//devo lavorare da qui

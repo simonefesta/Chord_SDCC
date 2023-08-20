@@ -27,6 +27,7 @@ func main() {
 	fmt.Println("1. Aggiungi oggetto")
 	fmt.Println("2. Cerca un oggetto")
 	fmt.Println("3. Rimuovi un nodo")
+	fmt.Println("3. Rimuovi un oggetto")
 
 	for {
 		fmt.Print("\nInserisci scelta: ")
@@ -99,6 +100,33 @@ func main() {
 					log.Fatal("Client invocation error: ", err)
 				}
 
+				fmt.Println(result)
+			}
+
+		case 4:
+			fmt.Print("Digita l'id dell'oggetto da rimuovere: ")
+
+			fmt.Scanln(&input)
+			keyboardArgoment.Choice = 4 //per eliminare una chiave, devo cercarla, ma questo già lo faccio nel caso due.
+
+			id, err := strconv.Atoi(input)
+			if err != nil {
+				fmt.Println("Input non valido. Devi inserire un numero intero.")
+
+			} else {
+				keyboardArgoment.Id = id
+
+				//devo connettermi per cercare questo oggetto
+				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
+				if err != nil {
+					log.Fatal("Errore connessione client registry", err)
+				}
+
+				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+				if err != nil {
+					// Gestisci l'errore se si verifica
+					log.Fatal("Errore nella chiamata di metodo RPC: ", err)
+				}
 				fmt.Println(result)
 			}
 

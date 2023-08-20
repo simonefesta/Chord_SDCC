@@ -19,6 +19,7 @@ type Arg struct {
 	Id     int
 	Value  string
 	Choice int
+	Type   bool //1 se devo rimuovere la chiave, altrimenti la cerco e basta.
 }
 
 type Registry string //fa parte della registrazione anche successor
@@ -233,6 +234,27 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 		*reply = result
 
 	case 2:
+		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
+		if err != nil {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
+				// Errore specifico dell'operazione di rete
+				log.Fatalf("Errore connessione client nodo da contattare: %s, Op: %s, Net: %s", err, opErr.Op, opErr.Net)
+			} else {
+				// Altro tipo di errore
+				log.Fatal("Errore connessione client nodo da contattare: ", err)
+			}
+		}
+
+		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+		if err != nil {
+			log.Fatal("Client invocation error: ", err)
+		}
+
+		*reply = result
+
+	case 4:
+		arg.Type = true
 		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
 		if err != nil {
 			var opErr *net.OpError
