@@ -25,7 +25,7 @@ docker-compose up
 Questo permette la creazione di un numero definito di container e di un server registry nella stessa rete.  
 E' possibile variare il numero di nodi da creare. Per far questo bisognerà modificare il file:  
 
-``` config.json``` e, sempre dalla directory principale, ricompilare il file docker-compose.yml tramite il comando, da terminale:  
+```config.json``` e, sempre dalla directory principale, ricompilare il file docker-compose.yml tramite il comando, da terminale:  
 ``` python generate-compose.py ```
 Questa operazione richiederà tuttavia una nuova esecuzione dei comandi build e run visti sopra.  
 
@@ -37,7 +37,7 @@ E' supportata l'aggiunta postuma di un nodo.
 Dalla directory principale, mediante terminale, basterà eseguire il comando ``` ./start_node.sh ```.  
 E' possibile aggiungere ulteriori nodi, uno alla volta, tramite stesso comando, ma, per permettere una corretta gestione delle porte, bisognerà specificare un flag crescente, che parte da 1.
 Ad esempio:
-- ``` ./start_node.sh ``` istanzia il primo nodo postumo, 
+- ``` ./start_node.sh``` istanzia il primo nodo postumo, 
 - ``` ./start_node.sh 1``` istanzia il secondo nodo postumo,
 - ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
 
@@ -54,15 +54,15 @@ Da terminale (presso qualsiasi cartella), collegarsi all'istanza mediante:
 (nb: l'indirizzo ipv4 pubblico è visibile nel pannello delle istanze di Amazon EC2).  
 Per copiare il progetto, recarsi nella directory contenente il progetto. (Se il progetto è nella folder 'Scaricati', posizionarsi in 'Scaricati').    
 Da terminale:    
-```cp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/```
+```scp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/```  
 Quando il progetto è stato copiato, è possibile avviarlo con i comandi già visti:
-```"docker-compose build"```,  
-```"docker-compose up"```.  
-Recandosi nella cartella client, è possibile avviare il client come già visto in precedenza.  
-Terminati i test, è possibile pulire i container tramite il comando:  
+- ```"docker-compose build"```,  
+- ```"docker-compose up"```.  
+Recandosi nella cartella client, si deve avviare il client come già visto in precedenza.  
+Terminati i test, puliamo l'ambiente dei container tramite il comando:  
 ```docker container prune```  
 Per scollegarsi dall'istanza, usare il comando ```exit```
 
 # NOTE
 - E' possibile incorrere in collisioni durante la creazione dei container. Un nodo mappato su in identificativo già usato verrà chiuso. Il sistema funzionerà normalmente.
-  Ciò è possibile anche mediante l'avvio del nodo singolo. Tuttavia, non basterà in questo caso rieseguire il comando di start per riavviare il nodo singolo, in quanto risulterà già l'esistenza di un container con quel nome. Per creare un nuovo nodo, bisognerà usare i flag '1', '2', etc, oppure eseguire il comando 'prune' come già visto per una pulizia completa.
+Se ciò si verifica durante l'avvio del nodo singolo, mediante lo stesso comando di avvio l'istanza verrà riavviata ed entrerà nel sistema (a meno di un'altra, ma più improbabile, collisione).
