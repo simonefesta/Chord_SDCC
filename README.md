@@ -5,11 +5,13 @@
   
 # Breve Descrizione
 Il seguente progetto riproduce una overlay network strutturata basata sul protocollo di Chord. Mediante un client, è possibile, passando per un server registry, memorizzare/ricercare/eliminare stringhe sui nodi componenti l'anello. La rimozione  <i>controllata </i> di un nodo è supportata.
+![ring](https://github.com/simonefesta/Chord_SDCC/assets/55951548/04af223b-d756-4e77-b3b5-c74ed7ffe8d4)
+
 
 
 # Esecuzione del programma
-Il programa richiede l'avvio in background del Docker Server. Successivamente:
-Recandosi nella directory principale del progetto, da terminale, eseguire:
+Il programa richiede l'avvio in background del Docker Server. 
+Successivamente, recandosi nella directory principale del progetto, da terminale, eseguire:
 ```
 docker-compose build
 ```
@@ -24,7 +26,7 @@ E' possibile variare il numero di nodi da creare. Per far questo bisognerà modi
 ``` python generate-compose.py ```
 Questa operazione richiederà tuttavia una nuova esecuzione dei comandi build e run visti sopra.
 
-Sempre partendo dalla directory principale, è possibile avviare il client recandosi nella cartella <i>client<i> mediante comando
+Sempre partendo dalla directory principale, è possibile avviare il client recandosi nella cartella <i>client</i> mediante comando
 ```cd client``` e procedere all'avvio mediante ```go run client.go``` per avere un'interfaccia per la gestione dell'anello.
 
 E' supportata l'aggiunta postuma di un nodo.
