@@ -5,6 +5,8 @@
   
 # Breve Descrizione
 Il seguente progetto riproduce una overlay network strutturata basata sul protocollo di Chord. Mediante un client, è possibile, passando per un server registry, memorizzare/ricercare/eliminare stringhe sui nodi componenti l'anello. La rimozione  <i>controllata </i> di un nodo è supportata.
+
+
 ![ring](https://github.com/simonefesta/Chord_SDCC/assets/55951548/04af223b-d756-4e77-b3b5-c74ed7ffe8d4)
 
 
@@ -33,4 +35,7 @@ Sempre partendo dalla directory principale, è possibile avviare il client recan
 E' supportata l'aggiunta postuma di un nodo.  
 Dalla directory principale, mediante terminale, basterà eseguire il comando ``` ./start_node.sh ```.  
 E' possibile aggiungere ulteriori nodi, uno alla volta, tramite stesso comando, ma, per permettere una corretta gestione delle porte, bisognerà specificare un flag crescente, che parte da 1.
-Ad esempio, ``` ./start_node.sh ``` istanzia il primo nodo postumo, ``` ./start_node.sh 1``` istanzia il secondo nodo postumo, ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
+Ad esempio:
+-``` ./start_node.sh ``` istanzia il primo nodo postumo, 
+- ``` ./start_node.sh 1``` istanzia il secondo nodo postumo,
+-  ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
