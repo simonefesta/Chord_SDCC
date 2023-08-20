@@ -2,6 +2,7 @@
 - Corso: Sistemi Distribuiti e Cloud Computing
 - Facoltà di Ingegneria Informatica Magistrale, Università di Roma Tor Vergata.
 - Ambiente di sviluppo: Linux, in particolare <i>Fedora Linux 38</i>. Testato con  <i>Docker Desktop 4.22.0</i> e  <i>GO version go1.20.6</i>.
+- Autore 👨‍💻: Simone Festa
   
 # Breve Descrizione
 Il seguente progetto riproduce una overlay network strutturata basata sul protocollo di Chord. Mediante un client, è possibile, passando per un server registry, memorizzare/ricercare/eliminare stringhe sui nodi componenti l'anello. La rimozione  <i>controllata </i> di un nodo è supportata.
