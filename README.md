@@ -10,26 +10,27 @@ Il seguente progetto riproduce una overlay network strutturata basata sul protoc
 
 
 # Esecuzione del programma
-Il programa richiede l'avvio in background del Docker Server. 
-Successivamente, recandosi nella directory principale del progetto, da terminale, eseguire:
+Il programa richiede l'avvio in background del Docker Server.  
+Successivamente, recandosi nella directory principale del progetto, da terminale, eseguire:  
 ```
 docker-compose build
 ```
-e in seguito
+e in seguito  
 ```
 docker-compose up
 ```
-Questo permette la creazione di un numero definito di container e di un server registry nella stessa rete.
-E' possibile variare il numero di nodi da creare. Per far questo bisognerà modificare il file
+Questo permette la creazione di un numero definito di container e di un server registry nella stessa rete.  
+E' possibile variare il numero di nodi da creare. Per far questo bisognerà modificare il file:  
 
-``` config.json``` e, sempre dalla directory principale, ricompilare il file docker-compose.yml tramite il comando, da terminale:
+``` config.json``` e, sempre dalla directory principale, ricompilare il file docker-compose.yml tramite il comando, da terminale:  
 ``` python generate-compose.py ```
-Questa operazione richiederà tuttavia una nuova esecuzione dei comandi build e run visti sopra.
+Questa operazione richiederà tuttavia una nuova esecuzione dei comandi build e run visti sopra.  
 
-Sempre partendo dalla directory principale, è possibile avviare il client recandosi nella cartella <i>client</i> mediante comando
-```cd client``` e procedere all'avvio mediante ```go run client.go``` per avere un'interfaccia per la gestione dell'anello.
+Sempre partendo dalla directory principale, è possibile avviare il client recandosi nella cartella <i>client</i> mediante comando  
+```cd client``` e procedere all'avvio mediante  
+```go run client.go``` per avere un'interfaccia per la gestione dell'anello.
 
-E' supportata l'aggiunta postuma di un nodo.
-Dalla directory principale, mediante terminale, basterà eseguire il comando ``` ./start_node.sh ```.
+E' supportata l'aggiunta postuma di un nodo.  
+Dalla directory principale, mediante terminale, basterà eseguire il comando ``` ./start_node.sh ```.  
 E' possibile aggiungere ulteriori nodi, uno alla volta, tramite stesso comando, ma, per permettere una corretta gestione delle porte, bisognerà specificare un flag crescente, che parte da 1.
 Ad esempio, ``` ./start_node.sh ``` istanzia il primo nodo postumo, ``` ./start_node.sh 1``` istanzia il secondo nodo postumo, ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
