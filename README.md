@@ -39,4 +39,30 @@ E' possibile aggiungere ulteriori nodi, uno alla volta, tramite stesso comando, 
 Ad esempio:
 - ``` ./start_node.sh ``` istanzia il primo nodo postumo, 
 - ``` ./start_node.sh 1``` istanzia il secondo nodo postumo,
--  ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
+- ``` ./start_node.sh 2``` istanzia il terzo nodo postumo.
+
+# Esecuzione del programma con AWS - EC2
+NB: l'istanza richiede l'installazione di Docker, Golang e Python.
+Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items/2385832  
+Effettuare il login se necessario.  
+Premere 'Start Lab'.  
+Quando la scritta 'AWS' presenta un cerchio verde, premere 'AWS' per entrare in 'AWS Management Console'.  
+Recarsi nel pannello di controllo EC2.  
+Avviare una nuova istanza, o mantenerne una precedentemente creata. (nome di esempio: ec2).  
+Da terminale (presso qualsiasi cartella), collegarsi all'istanza mediante:  
+``` ssh -i ~/.ssh/AWSKeypair.pem ec2-user@<ipv4_public_address>```    
+(nb: l'indirizzo ipv4 pubblico è visibile nel pannello delle istanze di Amazon EC2).  
+Per copiare il progetto, recarsi nella directory contenente il progetto. (Se il progetto è nella folder 'Scaricati', posizionarsi in 'Scaricati').    
+Da terminale:    
+```cp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/```
+Quando il progetto è stato copiato, è possibile avviarlo con i comandi già visti:
+```"docker-compose build"```,  
+```"docker-compose up"```.  
+Recandosi nella cartella client, è possibile avviare il client come già visto in precedenza.  
+Terminati i test, è possibile pulire i container tramite il comando:  
+```docker container prune```  
+Per scollegarsi dall'istanza, usare il comando ```exit```
+
+# NOTE
+- E' possibile incorrere in collisioni durante la creazione dei container. Un nodo mappato su in identificativo già usato verrà chiuso. Il sistema funzionerà normalmente.
+  Ciò è possibile anche mediante l'avvio del nodo singolo. Tuttavia, non basterà in questo caso rieseguire il comando di start per riavviare il nodo singolo, in quanto risulterà già l'esistenza di un container con quel nome. Per creare un nuovo nodo, bisognerà usare i flag '1', '2', etc, oppure eseguire il comando 'prune' come già visto per una pulizia completa.
