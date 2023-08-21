@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var Nodes = make(map[int]string)
+var Nodes = make(map[int]string) //il registry mantiene un vettore di indice intero e valore 'string'. L'indice è l'id del nodo, il valore è l'ip+porta.
 
 type Arg struct {
 	Id     int
