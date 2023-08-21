@@ -195,6 +195,27 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 }
 
 func (t *Registry) EnterRing(arg *Arg, reply *string) error {
+
+	if len(Nodes) == 0 {
+		return errors.New("non ci sono nodi nell'anello")
+	}
+	keys := make([]int, 0, len(Nodes))
+	for k := range Nodes {
+		keys = append(keys, k)
+	}
+
+	rand.NewSource(time.Now().Unix())
+	n := rand.Int() % len(keys)
+	nodeContact := Nodes[keys[n]]
+
+	*reply = ObtainAddress(nodeContact)
+
+	return nil
+}
+
+/*
+
+func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	choice := arg.Choice
 
 	if len(Nodes) == 0 {
@@ -210,7 +231,7 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	var result string
 	nodeContact := Nodes[keys[n]]
 
-	switch choice {
+	/*switch choice {
 	case 1:
 		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
 		if err != nil {
@@ -260,7 +281,7 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	}
 
 	return nil
-}
+}*/
 
 func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 	*ipNodo = Nodes[idNodo]

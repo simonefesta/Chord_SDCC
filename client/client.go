@@ -13,6 +13,7 @@ type KeyboardArgoment struct { //ciò che viene preso da tastiera se vogliamo in
 	Id     int
 	Value  string
 	Choice int
+	Type   bool
 }
 
 var RegistryFromOutside string = "0.0.0.0:1234"
@@ -50,6 +51,20 @@ func main() {
 			if err != nil {
 				log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 			}
+
+			fmt.Printf("Devo contattare %s\n", result)
+			client.Close()
+			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+			if err != nil {
+				log.Fatal("Errore nel client caso 1: non riesco a contattere il nodo necessario, ", err)
+			}
+
+			err = client.Call("Successor.AddObject", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
+			if err != nil {
+				// Gestisci l'errore se si verifica
+				log.Fatal("Errore nel client caso 1: non riesco a chiamare la funzione 'AddObject', ", err)
+			}
+
 			fmt.Println(result)
 			client.Close()
 
@@ -77,6 +92,20 @@ func main() {
 					// Gestisci l'errore se si verifica
 					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
+				fmt.Printf("Devo contattare %s\n", result)
+				client.Close()
+
+				client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+				if err != nil {
+					log.Fatal("Errore nel client caso 2: non riesco a contattere il nodo necessario, ", err)
+
+				}
+
+				err = client.Call("Successor.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+				if err != nil {
+					log.Fatal("Errore nel client caso 2: non riesco a chiamare la funzione 'SearchObject' (caso 2), ", err)
+				}
+
 				fmt.Println(result)
 				client.Close()
 
@@ -106,6 +135,20 @@ func main() {
 					// Gestisci l'errore se si verifica
 					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
+				client.Close()
+
+				keyboardArgoment.Type = true              //true se voglio cercare l'oggetto per rimuoverlo.
+				client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+				if err != nil {
+					log.Fatal("Errore nel client caso 3: non riesco a contattere il nodo necessario, ", err)
+
+				}
+
+				err = client.Call("Successor.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+				if err != nil {
+					log.Fatal("Errore nel client caso 3: non riesco a chiamare la funzione 'SearchObject' (caso 3), ", err)
+				}
+
 				fmt.Println(result)
 				client.Close()
 

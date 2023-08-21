@@ -16,6 +16,8 @@ services:
       dockerfile: ./DockerFiles/node/Dockerfile  
     ports:
       - "8005:8005"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8005
     networks:
       - my_network
     depends_on:
@@ -26,7 +28,9 @@ services:
       context: ./ 
       dockerfile: ./DockerFiles/node/Dockerfile  
     ports:
-      - "8006:8005"  # Mappa la porta 8005 del server del container all'host
+      - "8006:8006"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8006
     networks:
       - my_network
     depends_on:
@@ -37,7 +41,9 @@ services:
       context: ./ 
       dockerfile: ./DockerFiles/node/Dockerfile  
     ports:
-      - "8007:8005"  # Mappa la porta 8005 del server del container all'host
+      - "8007:8007"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8007
     networks:
       - my_network
     depends_on:
@@ -48,7 +54,9 @@ services:
       context: ./ 
       dockerfile: ./DockerFiles/node/Dockerfile  
     ports:
-      - "8008:8005"  # Mappa la porta 8005 del server del container all'host
+      - "8008:8008"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8008
     networks:
       - my_network
     depends_on:
@@ -59,7 +67,9 @@ services:
       context: ./ 
       dockerfile: ./DockerFiles/node/Dockerfile  
     ports:
-      - "8009:8005"  # Mappa la porta 8005 del server del container all'host
+      - "8009:8009"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8009
     networks:
       - my_network
     depends_on:

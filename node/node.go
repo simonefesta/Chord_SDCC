@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
+	"os"
 	"strconv"
 	"time"
 )
@@ -205,6 +206,7 @@ func getKeys(me *Node) map[int]string {
 }
 
 func (t *Successor) AddObject(arg *Arg, reply *string) error {
+
 	idRisorsa := sha_adapted(arg.Value)            //id risorsa da aggiugere
 	idPredecessor := sha_adapted(node.Predecessor) //id del nodo che ha chiamato il successore (quindi il precedente del successore è il nodo che ha chiamato il successore)
 	idSuccessor := sha_adapted(node.Successor)
@@ -366,9 +368,10 @@ func main() {
 		fmt.Println("Errore nell'ottenere l'indirizzo IP:", err)
 		return
 	}
-	ipPort, err := getAvailablePort()
-	if err != nil {
-		fmt.Println("Errore nell'ottenere la porta:", err)
+
+	ipPort := os.Getenv("NODE_PORT")
+	if ipPort == "" {
+		fmt.Println("La porta non è specificata.")
 		return
 	}
 
@@ -389,7 +392,8 @@ func main() {
 	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
 	rpc.Register(successor)
 	rpc.HandleHTTP()
-	listener, err := net.Listen("tcp", me.Ip)
+
+	listener, err := net.Listen("tcp", ipPortString)
 	if err != nil {
 		log.Fatal("Listener error in node.go :", err)
 	}

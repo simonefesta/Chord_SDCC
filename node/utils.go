@@ -42,16 +42,6 @@ func getLocalIP() (string, error) {
 	return localAddr.IP.String(), nil
 }
 
-func getAvailablePort() (string, error) {
-	l, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-	addr := l.Addr().(*net.TCPAddr)
-	return fmt.Sprintf("%d", addr.Port), nil
-}
-
 type Config struct {
 	M int `json:"bits"`
 }

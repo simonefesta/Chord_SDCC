@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -29,4 +30,13 @@ func ReadFromConfig() (int, error) {
 	}
 
 	return config.M, nil
+}
+
+func ObtainAddress(node string) string {
+
+	parts := strings.Split(node, ":")
+	addr := "0.0.0.0:" + parts[1]
+
+	return addr
+
 }
