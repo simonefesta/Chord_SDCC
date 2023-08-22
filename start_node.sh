@@ -14,5 +14,5 @@ port=$((8005 + node_number))
 docker build -t "chord_sdcc_node${node_number}" -f DockerFiles/node/Dockerfile .
 
 # Run the Docker container with the calculated port (--rm permette il riavvio del container senza usare i flag).
-docker run --rm -p $port:$port --network=chord_sdcc_my_network "chord_sdcc_node${node_number}"
+docker run --rm -p $port:$port --network=chord_sdcc_my_network -e NODE_PORT=$port "chord_sdcc_node${node_number}"
 

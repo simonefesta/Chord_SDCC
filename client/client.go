@@ -59,7 +59,7 @@ func main() {
 				log.Fatal("Errore nel client caso 1: non riesco a contattere il nodo necessario, ", err)
 			}
 
-			err = client.Call("Successor.AddObject", keyboardArgoment, &result)
+			err = client.Call("OtherNode.AddObject", keyboardArgoment, &result)
 			if err != nil {
 				// Gestisci l'errore se si verifica
 				log.Fatal("Errore nel client caso 1: non riesco a chiamare la funzione 'AddObject', ", err)
@@ -90,7 +90,6 @@ func main() {
 				if err != nil {
 					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
-				fmt.Printf("Devo contattare %s\n", result)
 				client.Close()
 
 				client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
@@ -99,7 +98,7 @@ func main() {
 
 				}
 
-				err = client.Call("Successor.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+				err = client.Call("OtherNode.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 				if err != nil {
 					log.Fatal("Errore nel client caso 2: non riesco a chiamare la funzione 'SearchObject' (caso 2), ", err)
 				}
@@ -140,7 +139,7 @@ func main() {
 
 				}
 
-				err = client.Call("Successor.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
+				err = client.Call("OtherNode.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 				if err != nil {
 					log.Fatal("Errore nel client caso 3: non riesco a chiamare la funzione 'SearchObject' (caso 3), ", err)
 				}

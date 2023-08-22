@@ -32,7 +32,7 @@ var node *Node
 
 var stopChan = make(chan struct{})
 
-type Successor string
+type OtherNode string
 
 func newNode(ip string) *Node {
 	node = new(Node)
@@ -108,13 +108,13 @@ func refreshNeighbors(node *Node) *Neighbors {
 }
 
 // aggiornamento dei nodi adiacenti ad un nodo prossimo alla rimozione.
-func (t *Successor) UpdateNeighborsNodeRemoved(idNodo int, result *string) error {
+func (t *OtherNode) UpdateNeighborsNodeRemoved(idNodo int, result *string) error {
 
 	client, err := rpc.DialHTTP("tcp", node.Predecessor)
 	if err != nil {
 		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a contattare il predecessore  ", err)
 	}
-	err = client.Call("Successor.UpdatePredecessorNodeRemoved", node, &result)
+	err = client.Call("OtherNode.UpdatePredecessorNodeRemoved", node, &result)
 	if err != nil {
 		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a chiamare Registry.RefreshNeighbors  ", err)
 	}
@@ -125,9 +125,9 @@ func (t *Successor) UpdateNeighborsNodeRemoved(idNodo int, result *string) error
 	if err != nil {
 		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a contattare il successore  ", err)
 	}
-	err = client.Call("Successor.UpdateSuccessorNodeRemoved", node, &result)
+	err = client.Call("OtherNode.UpdateSuccessorNodeRemoved", node, &result)
 	if err != nil {
-		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a chiamare Successor.UpdateSuccessor ", err)
+		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a chiamare OtherNode.UpdateSuccessorNodeRemoved ", err)
 	}
 
 	close(stopChan) //chiudi connessione
@@ -138,7 +138,7 @@ func (t *Successor) UpdateNeighborsNodeRemoved(idNodo int, result *string) error
 }
 
 // funzione usata da un nodo per contattare il suo predecessore, per comunicargli un nuovo successore.
-func (t *Successor) UpdatePredecessorNodeRemoved(nodoChiamante *Node, reply *string) error {
+func (t *OtherNode) UpdatePredecessorNodeRemoved(nodoChiamante *Node, reply *string) error {
 	node.Successor = nodoChiamante.Successor
 	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
 
@@ -147,7 +147,7 @@ func (t *Successor) UpdatePredecessorNodeRemoved(nodoChiamante *Node, reply *str
 }
 
 // funzione usata da un nodo per contattare il suo sucessore, per comunicargli un nuovo predecessore. Il nodo successore preleva le risorse lasciate dal nodo uscente.
-func (t *Successor) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *string) error {
+func (t *OtherNode) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *string) error {
 	node.Predecessor = nodoChiamante.Predecessor
 	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
@@ -161,7 +161,7 @@ func (t *Successor) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *strin
 
 }
 
-type Args struct { //argomenti da passare al metodo remoto Successor
+type Args struct { //argomenti da passare al metodo remoto OtherNode
 	Ip        string
 	CurrentIp string
 }
@@ -173,7 +173,7 @@ type ArgId struct {
 }
 
 // processo logico che permette ad un nodo entrante l'adozione di risorse precedentemente gestite da un altro nodo.
-func (t *Successor) Keys(arg *ArgId, reply *map[int]string) error {
+func (t *OtherNode) Keys(arg *ArgId, reply *map[int]string) error {
 	(*reply) = make(map[int]string)
 	idPredecessor := sha_adapted(arg.Predecessor)
 	for k := range node.Objects {
@@ -203,9 +203,9 @@ func getKeys(me *Node) map[int]string {
 		log.Fatal("Errore nodo getKeys: non riesco a contattare il successore (getKeys)  ", err)
 	}
 
-	err = client.Call("Successor.Keys", arg, &reply)
+	err = client.Call("OtherNode.Keys", arg, &reply)
 	if err != nil {
-		log.Fatal("Errore nodo getKeys: non riesco a chiamare Successor.Keys ", err)
+		log.Fatal("Errore nodo getKeys: non riesco a chiamare OtherNode.Keys ", err)
 	}
 	client.Close()
 	return reply
@@ -221,7 +221,7 @@ se c'è solo un nodo nella rete, se l'id è di sua competenza, oppure se l'id è
 
 Se l'oggetto non è di competenza del nodo in questione, cerca nella sua FT il nodo che dovrebbe gestirla.
 */
-func (t *Successor) AddObject(arg *Arg, reply *string) error {
+func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 
 	idRisorsa := sha_adapted(arg.Value)
 	idPredecessor := sha_adapted(node.Predecessor)
@@ -272,9 +272,9 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo trovato sulla FT  ", err)
 		}
 
-		err = client.Call("Successor.AddObject", arg, &reply)
+		err = client.Call("OtherNode.AddObject", arg, &reply)
 		if err != nil {
-			log.Fatal("Errore nodo AddObject: non riesco a chiamare Successor.AddObject ", err)
+			log.Fatal("Errore nodo AddObject: non riesco a chiamare OtherNode.AddObject ", err)
 		}
 
 		client.Close()
@@ -290,7 +290,7 @@ Vedo se la risorsa è di mia competenza in base al consistent hashing. Se lo è,
 Se non è di mia competenza, contatto il nodo che dovrebbe gestirla secondo la mia FT.
 Se l'id è "lontano" dalla mia FT, contatto l'ultimo nodo presente nella mia FT.
 */
-func (t *Successor) SearchObject(arg *Arg, reply *string) error {
+func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 
 	idRisorsa := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.Predecessor)
@@ -341,9 +341,9 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 		if err != nil {
 			log.Fatal("Errore nodo SearchObject: non riesco a contattare il nodo trovato sulla FT  ", err)
 		}
-		err = client.Call("Successor.SearchObject", arg, &reply)
+		err = client.Call("OtherNode.SearchObject", arg, &reply)
 		if err != nil {
-			log.Fatal("Errore nodo SearchObject: non riesco a chiamare Successor.SearchObject ", err)
+			log.Fatal("Errore nodo SearchObject: non riesco a chiamare OtherNode.SearchObject ", err)
 		}
 
 		client.Close()
@@ -361,7 +361,7 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			return
 		default:
 			time.Sleep(5 * time.Second)
-			neightbors := refreshNeighbors(me) //successore nodo creato
+			neightbors := refreshNeighbors(me) //OtherNodee nodo creato
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
 				me.Predecessor = neightbors.Predecessor
@@ -411,8 +411,8 @@ func main() {
 
 	go scanRing(me, stopChan)
 
-	successor := new(Successor) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
-	rpc.Register(successor)
+	othernode := new(OtherNode) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
+	rpc.Register(othernode)
 	rpc.HandleHTTP()
 
 	listener, err := net.Listen("tcp", ipPortString)

@@ -213,76 +213,6 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	return nil
 }
 
-/*
-
-func (t *Registry) EnterRing(arg *Arg, reply *string) error {
-	choice := arg.Choice
-
-	if len(Nodes) == 0 {
-		return errors.New("non ci sono nodi nell'anello")
-	}
-	keys := make([]int, 0, len(Nodes))
-	for k := range Nodes {
-		keys = append(keys, k)
-	}
-
-	rand.NewSource(time.Now().Unix())
-	n := rand.Int() % len(keys)
-	var result string
-	nodeContact := Nodes[keys[n]]
-
-	/*switch choice {
-	case 1:
-		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
-		if err != nil {
-			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
-		}
-
-		err = client.Call("Successor.AddObject", arg, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
-		if err != nil {
-			// Gestisci l'errore se si verifica
-			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'AddObject', ", err)
-		}
-
-		*reply = result
-		client.Close()
-
-	case 2:
-		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
-		if err != nil {
-			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
-
-		}
-
-		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
-		if err != nil {
-			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'SearchObject' (caso 2), ", err)
-		}
-
-		*reply = result
-		client.Close()
-
-	case 3:
-		arg.Type = true                                 //true se voglio cercare l'oggetto per rimuoverlo.
-		client, err := rpc.DialHTTP("tcp", nodeContact) //contatto il nodo che ho trovato prima.
-		if err != nil {
-			log.Fatal("Errore nel registry EnterRing: non riesco a contattere il nodo necessario, ", err)
-
-		}
-
-		err = client.Call("Successor.SearchObject", arg, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
-		if err != nil {
-			log.Fatal("Errore nel registry EnterRing: non riesco a chiamare la funzione 'SearchObject' (caso 3), ", err)
-		}
-
-		*reply = result
-		client.Close()
-
-	}
-
-	return nil
-}*/
-
 func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 	*ipNodo = Nodes[idNodo]
 	return nil
@@ -310,9 +240,9 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 			log.Fatal("Errore nel registry RemoveNode: non riesco a contattere il nodo da rimuovere, ", err)
 		}
 
-		err = client.Call("Successor.UpdateNeighborsNodeRemoved", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
+		err = client.Call("OtherNode.UpdateNeighborsNodeRemoved", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
 		if err != nil {
-			log.Fatal("Errore nel registry RemoveNode: non riesco a chiamare la funzione Successor.UpdateNeighborsNodeRemoved: ", err)
+			log.Fatal("Errore nel registry RemoveNode: non riesco a chiamare la funzione OtherNode.UpdateNeighborsNodeRemoved: ", err)
 
 		}
 
