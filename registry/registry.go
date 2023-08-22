@@ -289,6 +289,10 @@ func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
 
 }
 
+/*
+ Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia presente nel sistema, lo contatto per avviare il processo di aggiornamento dei nodi vicini.)
+*/
+
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
 	if len(Nodes) <= 2 {
@@ -306,9 +310,9 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 			log.Fatal("Errore nel registry RemoveNode: non riesco a contattere il nodo da rimuovere, ", err)
 		}
 
-		err = client.Call("Successor.UpdateNeighbors", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
+		err = client.Call("Successor.UpdateNeighborsNodeRemoved", idNodo, &result) //avvio la pratica per fargli aggiornare precedente e successivo
 		if err != nil {
-			log.Fatal("Errore nel registry RemoveNode: non riesco a chiamare la funzione registry.removeNode: ", err)
+			log.Fatal("Errore nel registry RemoveNode: non riesco a chiamare la funzione Successor.UpdateNeighborsNodeRemoved: ", err)
 
 		}
 

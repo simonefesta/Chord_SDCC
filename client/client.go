@@ -9,14 +9,14 @@ import (
 	"strconv"
 )
 
-type KeyboardArgoment struct { //ciò che viene preso da tastiera se vogliamo inserire un oggetto
+type KeyboardArgoment struct { //Struct per gli argomenti passati da tastiera.
 	Id     int
 	Value  string
 	Choice int
-	Type   bool
+	Type   bool //true se cerco una risorsa per eliminarla, false se la certo per ottenere il valore associato.
 }
 
-var RegistryFromOutside string = "0.0.0.0:1234"
+var RegistryFromOutside string = "0.0.0.0:1234" //indirizzo per contattare il registry dal client.
 
 func main() {
 
@@ -25,9 +25,9 @@ func main() {
 	var resp int
 	var input string
 
-	fmt.Println("1. Aggiungi oggetto")
-	fmt.Println("2. Cerca un oggetto")
-	fmt.Println("3. Rimuovi un oggetto")
+	fmt.Println("1. Aggiungi oggetto, [PUT]")
+	fmt.Println("2. Cerca un oggetto, [GET]")
+	fmt.Println("3. Rimuovi un oggetto, [REMOVE]")
 	fmt.Println("4. Rimuovi un nodo")
 
 	for {
@@ -52,14 +52,14 @@ func main() {
 				log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 			}
 
-			fmt.Printf("Devo contattare %s\n", result)
 			client.Close()
+
 			client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
 			if err != nil {
 				log.Fatal("Errore nel client caso 1: non riesco a contattere il nodo necessario, ", err)
 			}
 
-			err = client.Call("Successor.AddObject", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result"
+			err = client.Call("Successor.AddObject", keyboardArgoment, &result)
 			if err != nil {
 				// Gestisci l'errore se si verifica
 				log.Fatal("Errore nel client caso 1: non riesco a chiamare la funzione 'AddObject', ", err)
@@ -81,15 +81,13 @@ func main() {
 			} else {
 				keyboardArgoment.Id = id
 
-				//devo connettermi per cercare questo oggetto
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
 					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
 				}
 
-				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+				err = client.Call("Registry.EnterRing", keyboardArgoment, &result)
 				if err != nil {
-					// Gestisci l'errore se si verifica
 					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
 				fmt.Printf("Devo contattare %s\n", result)
@@ -124,21 +122,19 @@ func main() {
 			} else {
 				keyboardArgoment.Id = id
 
-				//devo connettermi per cercare questo oggetto
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
 					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
 				}
 
-				err = client.Call("Registry.EnterRing", keyboardArgoment, &result) //chiamo metodo, passando come argomento "keyboardArgoment" ed ottengo "result", che è il nodo scelto random.
+				err = client.Call("Registry.EnterRing", keyboardArgoment, &result)
 				if err != nil {
-					// Gestisci l'errore se si verifica
 					log.Fatal("Errore nel client: non riesco a chiamare la funzione 'EnterRing' del registry, ", err)
 				}
 				client.Close()
 
-				keyboardArgoment.Type = true              //true se voglio cercare l'oggetto per rimuoverlo.
-				client, err = rpc.DialHTTP("tcp", result) //contatto il nodo che ho trovato prima.
+				keyboardArgoment.Type = true //true se voglio cercare l'oggetto per rimuoverlo.
+				client, err = rpc.DialHTTP("tcp", result)
 				if err != nil {
 					log.Fatal("Errore nel client caso 3: non riesco a contattere il nodo necessario, ", err)
 

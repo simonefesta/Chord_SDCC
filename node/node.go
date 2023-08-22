@@ -16,13 +16,13 @@ type Node struct {
 	Ip          string
 	Predecessor string
 	Successor   string
-	Objects     map[int]string //mappo le chiavi intere(id) in valori (string) //secondo me è il contrario, perchè le chiavi sono le righe, i valori gli id.
+	Objects     map[int]string //mapp <key int, string value>
 	Finger      []int
 }
 
-type Arg struct { //ciò che passo ai metodi
+type Arg struct {
 	Id    int
-	Value string //ip if is node, object if is resource
+	Value string //nel caso dei nodi è è il valore dell'indirizzo IP, per le risorse è il valore della risorsa.
 	Type  bool
 }
 
@@ -31,6 +31,8 @@ var RegistryFromInside string = "registry:1234"
 var node *Node
 
 var stopChan = make(chan struct{})
+
+type Successor string
 
 func newNode(ip string) *Node {
 	node = new(Node)
@@ -43,6 +45,7 @@ type Neighbors struct {
 	Predecessor string
 }
 
+// funzione per ottenere i nodi vicini.
 func getNeighbors(ip string) *Neighbors {
 
 	result := new(Neighbors)
@@ -63,6 +66,7 @@ func getNeighbors(ip string) *Neighbors {
 
 }
 
+// funzione per creare una finger table da parte del nodo. Il registry fornisce gli id da inserire nella FT.
 func CreateFingerTable(node *Node) error {
 	arg := new(Arg)
 	arg.Value = node.Ip
@@ -81,6 +85,7 @@ func CreateFingerTable(node *Node) error {
 
 }
 
+// funzione che permette ad un nodo di refreshare la propria FT.
 func refreshNeighbors(node *Node) *Neighbors {
 
 	result := new(Neighbors)
@@ -94,7 +99,7 @@ func refreshNeighbors(node *Node) *Neighbors {
 	}
 	err = client.Call("Registry.RefreshNeighbors", arg, &result)
 	if err != nil {
-		log.Fatal("Errore nodo CreateFingerTable: non riesco a chiamare Registry.RefreshNeighbors  ", err)
+		log.Fatal("Errore nodo refreshNeighbors: non riesco a chiamare Registry.RefreshNeighbors  ", err)
 	}
 
 	client.Close()
@@ -102,7 +107,38 @@ func refreshNeighbors(node *Node) *Neighbors {
 
 }
 
-func (t *Successor) UpdatePredecessor(nodoChiamante *Node, reply *string) error {
+// aggiornamento dei nodi adiacenti ad un nodo prossimo alla rimozione.
+func (t *Successor) UpdateNeighborsNodeRemoved(idNodo int, result *string) error {
+
+	client, err := rpc.DialHTTP("tcp", node.Predecessor)
+	if err != nil {
+		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a contattare il predecessore  ", err)
+	}
+	err = client.Call("Successor.UpdatePredecessorNodeRemoved", node, &result)
+	if err != nil {
+		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a chiamare Registry.RefreshNeighbors  ", err)
+	}
+
+	client.Close()
+
+	client, err = rpc.DialHTTP("tcp", node.Successor)
+	if err != nil {
+		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a contattare il successore  ", err)
+	}
+	err = client.Call("Successor.UpdateSuccessorNodeRemoved", node, &result)
+	if err != nil {
+		log.Fatal("Errore nodo UpdateNeighborsNodeRemoved: non riesco a chiamare Successor.UpdateSuccessor ", err)
+	}
+
+	close(stopChan) //chiudi connessione
+	client.Close()
+
+	return nil
+
+}
+
+// funzione usata da un nodo per contattare il suo predecessore, per comunicargli un nuovo successore.
+func (t *Successor) UpdatePredecessorNodeRemoved(nodoChiamante *Node, reply *string) error {
 	node.Successor = nodoChiamante.Successor
 	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
 
@@ -110,7 +146,8 @@ func (t *Successor) UpdatePredecessor(nodoChiamante *Node, reply *string) error 
 
 }
 
-func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
+// funzione usata da un nodo per contattare il suo sucessore, per comunicargli un nuovo predecessore. Il nodo successore preleva le risorse lasciate dal nodo uscente.
+func (t *Successor) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *string) error {
 	node.Predecessor = nodoChiamante.Predecessor
 	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
@@ -124,54 +161,24 @@ func (t *Successor) UpdateSuccessor(nodoChiamante *Node, reply *string) error {
 
 }
 
-func (t *Successor) UpdateNeighbors(idNodo int, result *string) error { //questo quando ELIMINO UN NODO
-
-	client, err := rpc.DialHTTP("tcp", node.Predecessor)
-	if err != nil {
-		log.Fatal("Errore nodo UpdateNeighbors: non riesco a contattare il predecessore  ", err)
-	}
-	err = client.Call("Successor.UpdatePredecessor", node, &result)
-	if err != nil {
-		log.Fatal("Errore nodo UpdateNeighbors: non riesco a chiamare Registry.RefreshNeighbors  ", err)
-	}
-
-	client.Close()
-
-	client, err = rpc.DialHTTP("tcp", node.Successor)
-	if err != nil {
-		log.Fatal("Errore nodo UpdateNeighbors: non riesco a contattare il successore  ", err)
-	}
-	err = client.Call("Successor.UpdateSuccessor", node, &result)
-	if err != nil {
-		log.Fatal("Errore nodo UpdateNeighbors: non riesco a chiamare Successor.UpdateSuccessor ", err)
-	}
-
-	close(stopChan) //chiudi connessione
-	client.Close()
-
-	return nil
-
-}
-
-type Successor string
-
 type Args struct { //argomenti da passare al metodo remoto Successor
 	Ip        string
 	CurrentIp string
 }
 
-// **OLTRE AL NODO DEVO SPECIFICARE ANCHE LE CHIAVI
+// struct usata per la func 'Keys'.
 type ArgId struct {
 	Id          int
 	Predecessor string
 }
 
+// processo logico che permette ad un nodo entrante l'adozione di risorse precedentemente gestite da un altro nodo.
 func (t *Successor) Keys(arg *ArgId, reply *map[int]string) error {
 	(*reply) = make(map[int]string)
 	idPredecessor := sha_adapted(arg.Predecessor)
 	for k := range node.Objects {
-		if (arg.Id <= idPredecessor && (k <= arg.Id || k > idPredecessor)) || (k <= arg.Id && k > idPredecessor) { //in pratica vedo se gli oggetti sono compresi tra il nodo precedente e quello attuale. Però perchè il metodo è "Successor" se non fa nulla?
-			(*reply)[k] = node.Objects[k] //dereferenzio reply (quindi vado sulla mappa) e poi mi sposto di k.
+		if (arg.Id <= idPredecessor && (k <= arg.Id || k > idPredecessor)) || (k <= arg.Id && k > idPredecessor) {
+			(*reply)[k] = node.Objects[k]
 			delete(node.Objects, k)
 		}
 	}
@@ -179,10 +186,11 @@ func (t *Successor) Keys(arg *ArgId, reply *map[int]string) error {
 	return nil
 }
 
+// funzione che permette ad un nodo di chiamare il successore per verificare la presenza di risorse a lui destinate.
 func getKeys(me *Node) map[int]string {
-	reply := make(map[int]string) //slice vuota
+	reply := make(map[int]string)
 
-	if me.Successor == me.Ip { //ci sono solo io nella rete?
+	if me.Successor == me.Ip {
 		return reply
 	}
 
@@ -190,13 +198,12 @@ func getKeys(me *Node) map[int]string {
 	arg.Id = me.Id
 	arg.Predecessor = me.Predecessor
 
-	//io chiedo le chiavi/mi interfaccio sempre col successor
 	client, err := rpc.DialHTTP("tcp", me.Successor)
 	if err != nil {
 		log.Fatal("Errore nodo getKeys: non riesco a contattare il successore (getKeys)  ", err)
 	}
 
-	err = client.Call("Successor.Keys", arg, &reply) //ora gestisco questa chiamata
+	err = client.Call("Successor.Keys", arg, &reply)
 	if err != nil {
 		log.Fatal("Errore nodo getKeys: non riesco a chiamare Successor.Keys ", err)
 	}
@@ -205,14 +212,22 @@ func getKeys(me *Node) map[int]string {
 
 }
 
+/*
+Funzione per l'inserimento di un nuovo oggetto da memorizzare.
+
+Il primo if esegue tre controlli per vedere se la risorsa richiesta dovrebbe essere gestita dal nodo nella funzione:
+se c'è solo un nodo nella rete, se l'id è di sua competenza, oppure se l'id è di sua competenza ma per via del modulo il check precedente non può essere soddisfatto.
+(ultimo caso: ho un anello con nodo '9' e '1', la risorsa 10 è gestita da '1', anche se idRisorsa>1)
+
+Se l'oggetto non è di competenza del nodo in questione, cerca nella sua FT il nodo che dovrebbe gestirla.
+*/
 func (t *Successor) AddObject(arg *Arg, reply *string) error {
 
-	idRisorsa := sha_adapted(arg.Value)            //id risorsa da aggiugere
-	idPredecessor := sha_adapted(node.Predecessor) //id del nodo che ha chiamato il successore (quindi il precedente del successore è il nodo che ha chiamato il successore)
+	idRisorsa := sha_adapted(arg.Value)
+	idPredecessor := sha_adapted(node.Predecessor)
 	idSuccessor := sha_adapted(node.Successor)
 
 	if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
-		//primo pezzo è se c'è un solo nodo, il secondo pezzo è il caso 'comune', il terzo pezzo è quando sto a fine anello, quindi dove può verificarsi che il successore di '9' sia '1', per via del modulo. (caso 2 libretto)
 		if node.Objects[idRisorsa] != "" {
 			*reply = "oggetto con id:  '" + node.Objects[idRisorsa] + "' già esistente!\n"
 		} else {
@@ -224,22 +239,22 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 
 		isFound := false
 
-		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
-		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
-			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
+		var nodoContactId int
+		for i := 1; i < len(node.Finger)-1; i++ {
+			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) {
 				nodoContactId = node.Finger[1]
 				isFound = true
 				break
-			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
+			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) {
 				nodoContactId = node.Finger[i]
 				isFound = true
 				break
 			}
 		}
 		if !isFound {
-			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
+			nodoContactId = node.Finger[len(node.Finger)-1]
 		}
-		//adesso devo chiedere al registry chi è questo nodo con indice
+
 		var nodoContact string
 		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
 		if err != nil {
@@ -269,16 +284,22 @@ func (t *Successor) AddObject(arg *Arg, reply *string) error {
 	return nil
 }
 
+/*
+Ricerca di un oggetto.
+Vedo se la risorsa è di mia competenza in base al consistent hashing. Se lo è, allora devo vedere se ce l'ho o meno.
+Se non è di mia competenza, contatto il nodo che dovrebbe gestirla secondo la mia FT.
+Se l'id è "lontano" dalla mia FT, contatto l'ultimo nodo presente nella mia FT.
+*/
 func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 
 	idRisorsa := arg.Id //id oggetto
 	idPredecessor := sha_adapted(node.Predecessor)
 	isFound := false
-	if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) { //se lo statement è true, vuol dire che se l'oggetto esiste, devo averlo io.
+	if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
 		if node.Objects[idRisorsa] == "" { //se non c'è
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
-			if arg.Type { //devo rimuovere la chiave
+			if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
 				delete(node.Objects, idRisorsa)
 				*reply = "L'oggetto con id  '" + strconv.Itoa(idRisorsa) + "' è stato rimosso.\n"
 
@@ -287,15 +308,14 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 			}
 		}
 	} else {
-		//devo lavorare da qui
-		//trovo nella finger table il nodo da contattare
-		var nodoContactId int                     //qui mi salvo l'id del nodo da contattare
-		for i := 1; i < len(node.Finger)-1; i++ { //già sopra ho visto se la ho io, quindi anche se qui lascio questo check, non dovrei avere problemi.
-			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) { // è del successore
+
+		var nodoContactId int //qui mi salvo l'id del nodo da contattare
+		for i := 1; i < len(node.Finger)-1; i++ {
+			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) {
 				nodoContactId = node.Finger[1]
 				isFound = true
 				break
-			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) { //qui esamino la FT.
+			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) {
 				nodoContactId = node.Finger[i]
 				isFound = true
 				break
@@ -333,7 +353,7 @@ func (t *Successor) SearchObject(arg *Arg, reply *string) error {
 }
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
-	isPrint := true
+	isPrint := 1 //variabile che permette di stampare ogni isPrint * 5 secondi. Ogni 5 secondi controllo i vicini, ogni 15 vorrei stampare le FT (5*3, dove 3 è il valore per entrare in stampa.)
 	for {
 		select {
 		case <-stopChan:
@@ -347,14 +367,16 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 				me.Predecessor = neightbors.Predecessor
 			}
 			CreateFingerTable(me)
-			if isPrint { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
-				fmt.Printf("FT[%d] : ", me.Id)
+			if isPrint == 3 { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
+				fmt.Printf("FT[%d]: ", me.Id)
 				for i := 1; i <= len(me.Finger)-1; i++ {
 					fmt.Printf("<%d,%d> ", i, me.Finger[i])
 				}
 				fmt.Printf("\n")
+				isPrint = 1
+
 			}
-			isPrint = !isPrint
+			isPrint++
 		}
 
 	}
