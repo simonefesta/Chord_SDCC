@@ -3,7 +3,7 @@
 x=${1:-0}  # If no argument is provided, set x to 0 by default
 
 # Read the value of 'm' from config.json
-m=$(cat config.json | jq -r '.bits')
+m=$(cat config.json | jq -r '.nodes')
 
 # Calculate the port based on '8005 + m + x'
 node_number=$((m + x +1 ))

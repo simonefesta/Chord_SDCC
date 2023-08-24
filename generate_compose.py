@@ -8,7 +8,7 @@ import json
 def get_m_from_config():
     with open('config.json') as config_file:
         config_data = json.load(config_file)
-        return config_data['bits']
+        return config_data['nodes']
 
 def generate_docker_compose(num_containers):
     # Apri il file docker-compose.yml in modalità scrittura

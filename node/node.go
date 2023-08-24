@@ -229,7 +229,7 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 
 	if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
 		if node.Objects[idRisorsa] != "" {
-			*reply = "oggetto con id:  '" + node.Objects[idRisorsa] + "' già esistente!\n"
+			*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
 		} else {
 			node.Objects[idRisorsa] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
@@ -264,7 +264,6 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		if err != nil {
 			log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
 		}
-
 		client.Close()
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
@@ -300,8 +299,8 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
 			if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
+				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è stato rimosso.\n"
 				delete(node.Objects, idRisorsa)
-				*reply = "L'oggetto con id  '" + strconv.Itoa(idRisorsa) + "' è stato rimosso.\n"
 
 			} else {
 				*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
@@ -353,30 +352,33 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 }
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
-	isPrint := 1 //variabile che permette di stampare ogni isPrint * 5 secondi. Ogni 5 secondi controllo i vicini, ogni 15 vorrei stampare le FT (5*3, dove 3 è il valore per entrare in stampa.)
+	isPrint := true //variabile che permette di stampare ogni isPrint * 5 secondi. Ogni 5 secondi controllo i vicini, ogni 15 vorrei stampare le FT (5*3, dove 3 è il valore per entrare in stampa.)
 	for {
 		select {
 		case <-stopChan:
 			fmt.Printf("Connessione interrotta correttamente.")
 			return
 		default:
-			time.Sleep(5 * time.Second)
+
 			neightbors := refreshNeighbors(me) //OtherNodee nodo creato
+
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
 				me.Predecessor = neightbors.Predecessor
 			}
 			CreateFingerTable(me)
-			if isPrint == 3 { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
+			time.Sleep(10 * time.Second)
+			if isPrint { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
 				fmt.Printf("FT[%d]: ", me.Id)
 				for i := 1; i <= len(me.Finger)-1; i++ {
 					fmt.Printf("<%d,%d> ", i, me.Finger[i])
 				}
 				fmt.Printf("\n")
-				isPrint = 1
+				isPrint = false
 
+			} else {
+				isPrint = true
 			}
-			isPrint++
 		}
 
 	}

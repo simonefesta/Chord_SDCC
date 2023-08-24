@@ -9,7 +9,10 @@ import (
 	"net/rpc"
 	"sort"
 	"strconv"
+	"sync"
 )
+
+var nodesMutex sync.Mutex
 
 var Nodes = make(map[int]string) //il registry mantiene un vettore di indice intero e valore 'string'. L'indice è l'id del nodo, il valore è l'ip+porta.
 
@@ -147,6 +150,8 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 		return nil
 	}
 
+	nodesMutex.Lock()
+	defer nodesMutex.Unlock()
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	isInNodes := false
