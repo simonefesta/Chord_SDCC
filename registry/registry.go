@@ -4,13 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/rpc"
 	"sort"
 	"strconv"
-	"time"
 )
 
 var Nodes = make(map[int]string) //il registry mantiene un vettore di indice intero e valore 'string'. L'indice è l'id del nodo, il valore è l'ip+porta.
@@ -194,6 +192,8 @@ func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
 	return nil
 }
 
+var lastSelectedNode = -1 // Variabile globale per tenere traccia dell'ultimo nodo selezionato. Politica Round Robin per load balancing.
+
 func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 
 	if len(Nodes) == 0 {
@@ -203,11 +203,11 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	for k := range Nodes {
 		keys = append(keys, k)
 	}
+	sort.Ints(keys) // Ordinamento
 
-	rand.NewSource(time.Now().Unix())
-	n := rand.Int() % len(keys)
-	nodeContact := Nodes[keys[n]]
+	lastSelectedNode = (lastSelectedNode + 1) % len(keys) // Calcola l'indice del prossimo nodo
 
+	nodeContact := Nodes[keys[lastSelectedNode]]
 	*reply = ObtainAddress(nodeContact)
 
 	return nil
