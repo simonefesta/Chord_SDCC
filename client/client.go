@@ -97,7 +97,7 @@ func main() {
 					log.Fatal("Errore nel client caso 2: non riesco a contattere il nodo necessario, ", err)
 
 				}
-
+				keyboardArgoment.Type = false
 				err = client.Call("OtherNode.SearchObject", keyboardArgoment, &result) //iterativamente parte una ricerca tra i nodi usando le FT per trovare la risorsa.
 				if err != nil {
 					log.Fatal("Errore nel client caso 2: non riesco a chiamare la funzione 'SearchObject' (caso 2), ", err)

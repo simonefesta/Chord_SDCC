@@ -33,6 +33,53 @@ type NeighborsReply struct {
 
 var m int //numero di bits
 
+func (t *Registry) Finger(arg *Arg, reply *[]int) error {
+	id := arg.Id
+
+	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
+	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
+	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
+
+	for k := range Nodes {
+		keys = append(keys, k)
+		if id == k {
+			idInNodes = true
+		}
+	}
+	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
+		sort.Ints(keys)
+
+		fingerTable := make([]int, m+1)
+
+		//fmt.Printf("\n ANALISI DEL NODO %d", id)
+		for i := 1; i <= m; i++ {
+			// Calcola id + 2^(i-1) mod (2^m)
+			val := (id + (1 << (i - 1))) % (1 << m)
+			foundSuccessor := false
+
+			for _, k := range keys { //sono ordinate
+
+				if val <= k {
+
+					fingerTable[i] = k
+					foundSuccessor = true
+
+					break
+
+				}
+			}
+			if !foundSuccessor { //se non ho trovato nessun successore, allora è una risorsa del primo nodo.
+				fingerTable[i] = keys[0]
+			}
+		}
+		fingerTable[0] = arg.Id
+
+		*reply = fingerTable
+	}
+	return nil
+
+}
+
 func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	id := arg.Id
 	var err error
@@ -92,53 +139,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	reply.Predecessor = Nodes[len(keys)-1]
 
 	return nil
-}
-
-func (t *Registry) Finger(arg *Arg, reply *[]int) error {
-	id := arg.Id
-
-	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
-	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
-	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
-
-	for k := range Nodes {
-		keys = append(keys, k)
-		if id == k {
-			idInNodes = true
-		}
-	}
-	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
-		sort.Ints(keys)
-
-		fingerTable := make([]int, m+1)
-
-		//fmt.Printf("\n ANALISI DEL NODO %d", id)
-		for i := 1; i <= m; i++ {
-			// Calcola id + 2^(i-1) mod (2^m)
-			val := (id + (1 << (i - 1))) % (1 << m)
-			foundSuccessor := false
-
-			for _, k := range keys { //sono ordinate
-
-				if val <= k {
-
-					fingerTable[i] = k
-					foundSuccessor = true
-
-					break
-
-				}
-			}
-			if !foundSuccessor { //se non ho trovato nessun successore, allora è una risorsa del primo nodo.
-				fingerTable[i] = keys[0]
-			}
-		}
-		fingerTable[0] = arg.Id
-
-		*reply = fingerTable
-	}
-	return nil
-
 }
 
 func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
@@ -269,20 +269,11 @@ func main() {
 	// Creazione di un nuovo oggetto Registry
 	registry := new(Registry)
 	rpc.Register(registry) //l'oggetto registry viene registrato per consentire la comunicazione RPC.
-	rpc.HandleHTTP()       //La funzione HandleHTTP configura il pacchetto rpc per l'uso con il protocollo HTTP. Ciò consente al server RPC di gestire le richieste e le risposte RPC utilizzando il protocollo HTTP.
+	rpc.HandleHTTP()
 	l, e := net.Listen("tcp", ":1234")
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
-	http.Serve(l, nil) //avvia un server HTTP che ascolta sul listener l e gestisce le richieste in arrivo utilizzando il gestore predefinito di http.DefaultServeMux.
+	http.Serve(l, nil)
 
-}
-
-func isNodePresent(nodes map[int]string, idNodo int) bool {
-	for _, node := range nodes {
-		if node == Nodes[idNodo] {
-			return true
-		}
-	}
-	return false
 }

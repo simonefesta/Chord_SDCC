@@ -8,7 +8,6 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
-	"time"
 )
 
 type Node struct {
@@ -152,7 +151,7 @@ func (t *OtherNode) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *strin
 	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
 		node.Objects[key] = value
-		fmt.Printf("Node %d, ho un nuovo elemento: %s \n", node.Id, value)
+		fmt.Printf("Node %d, ho un nuovo elemento: <%d , %s> \n", node.Id, key, value)
 		delete(nodoChiamante.Objects, key)
 
 	}
@@ -233,7 +232,7 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		} else {
 			node.Objects[idRisorsa] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
-			fmt.Println(node.Objects)
+			fmt.Printf("Nodo: %d, %v\n", node.Id, node.Objects)
 		}
 	} else {
 
@@ -303,7 +302,8 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 				delete(node.Objects, idRisorsa)
 
 			} else {
-				*reply = "L'oggetto con id cercato è '" + node.Objects[idRisorsa] + "', posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
+				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
+
 			}
 		}
 	} else {
@@ -352,7 +352,6 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 }
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
-	isPrint := true //variabile che permette di stampare ogni isPrint * 5 secondi. Ogni 5 secondi controllo i vicini, ogni 15 vorrei stampare le FT (5*3, dove 3 è il valore per entrare in stampa.)
 	for {
 		select {
 		case <-stopChan:
@@ -360,25 +359,15 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			return
 		default:
 
-			neightbors := refreshNeighbors(me) //OtherNodee nodo creato
+			neightbors := refreshNeighbors(me)
 
 			me.Successor = neightbors.Successor
 			if neightbors.Predecessor != "" {
 				me.Predecessor = neightbors.Predecessor
 			}
 			CreateFingerTable(me)
-			time.Sleep(10 * time.Second)
-			if isPrint { //aggiorno ogni 5 secondi la fingertable, però non la mostro sempre (troppe info su schermo). Alla fine la stampo ogni 10 secondi.
-				fmt.Printf("FT[%d]: ", me.Id)
-				for i := 1; i <= len(me.Finger)-1; i++ {
-					fmt.Printf("<%d,%d> ", i, me.Finger[i])
-				}
-				fmt.Printf("\n")
-				isPrint = false
+			PrintFingerTable(me)
 
-			} else {
-				isPrint = true
-			}
 		}
 
 	}

@@ -40,3 +40,12 @@ func ObtainAddress(node string) string {
 	return addr
 
 }
+
+func isNodePresent(nodes map[int]string, idNodo int) bool {
+	for _, node := range nodes {
+		if node == Nodes[idNodo] {
+			return true
+		}
+	}
+	return false
+}

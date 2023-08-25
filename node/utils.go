@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func sha_adapted(key string) int {
@@ -65,4 +66,15 @@ func ReadFromConfig() (int, error) {
 	}
 
 	return config.M, nil
+}
+
+func PrintFingerTable(me *Node) {
+
+	fmt.Printf("FT[%d]: ", me.Id)
+	for i := 1; i <= len(me.Finger)-1; i++ {
+		fmt.Printf("<%d,%d> ", i, me.Finger[i])
+	}
+	fmt.Printf("\n")
+	time.Sleep(15 * time.Second)
+
 }
