@@ -151,7 +151,7 @@ func (t *OtherNode) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *strin
 	fmt.Printf("Node %d, il mio nuovo predecessore e'[%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 	for key, value := range nodoChiamante.Objects {
 		node.Objects[key] = value
-		fmt.Printf("Node %d, ho un nuovo elemento: <%d , %s> \n", node.Id, key, value)
+		fmt.Printf("Node %d, ho un nuovo elemento: <%d, %s> \n", node.Id, key, value)
 		delete(nodoChiamante.Objects, key)
 
 	}
@@ -178,6 +178,7 @@ func (t *OtherNode) Keys(arg *ArgId, reply *map[int]string) error {
 	for k := range node.Objects {
 		if (arg.Id <= idPredecessor && (k <= arg.Id || k > idPredecessor)) || (k <= arg.Id && k > idPredecessor) {
 			(*reply)[k] = node.Objects[k]
+			fmt.Printf("Node %d, ho un nuovo elemento: <%d, %s> \n", node.Id, k, node.Objects[k])
 			delete(node.Objects, k)
 		}
 	}
@@ -300,6 +301,7 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 			if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
 				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è stato rimosso.\n"
 				delete(node.Objects, idRisorsa)
+				fmt.Printf("Nodo: %d, Objects: %v\n", node.Id, node.Objects)
 
 			} else {
 				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
@@ -399,6 +401,9 @@ func main() {
 	fmt.Printf("Io sono %d, Indirizzo IP:%s\n", me.Id, ipPortString)
 
 	me.Objects = getKeys(me)
+	if len(me.Objects) != 0 {
+		fmt.Println(me.Objects)
+	}
 
 	go scanRing(me, stopChan)
 
