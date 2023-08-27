@@ -393,7 +393,7 @@ func main() {
 	ipPortString := fmt.Sprintf("%s:%s", ipAddress, ipPort)
 
 	me := newNode(ipPortString)
-	neightbors := getNeighbors(me.Ip) //successore nodo creato
+	neightbors := getNeighbors(me.Ip)
 	me.Successor = neightbors.Successor
 	me.Id = sha_adapted(me.Ip)
 	me.Predecessor = neightbors.Predecessor
@@ -407,7 +407,7 @@ func main() {
 
 	go scanRing(me, stopChan)
 
-	othernode := new(OtherNode) //ci si mette in ascolto per ricevere un messaggio in caso di join di nodi dopo il predecessore
+	othernode := new(OtherNode)
 	rpc.Register(othernode)
 	rpc.HandleHTTP()
 

@@ -52,7 +52,6 @@ func (t *Registry) Finger(arg *Arg, reply *[]int) error {
 
 		fingerTable := make([]int, m+1)
 
-		//fmt.Printf("\n ANALISI DEL NODO %d", id)
 		for i := 1; i <= m; i++ {
 			// Calcola id + 2^(i-1) mod (2^m)
 			val := (id + (1 << (i - 1))) % (1 << m)
@@ -116,7 +115,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	//adesso in keys ho tutte le chiavi 'k'
 
 	sort.Ints(keys)
-	//fmt.Println(keys)
 	Nodes[id] = arg.Value //metto il nodo in Nodes
 	fmt.Println(Nodes)
 
