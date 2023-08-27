@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"time"
 )
 
 var nodesMutex sync.Mutex
@@ -265,9 +266,29 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 }
 
+func isNodeAlive() {
+	time.Sleep(10 * time.Second)
+	for {
+		for index, node := range Nodes {
+			client, err := net.DialTimeout("tcp", node, 10*time.Second)
+			if err != nil {
+				fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", index, node)
+				delete(Nodes, index)
+
+			} else {
+				client.Close()
+			}
+
+		}
+		time.Sleep(5 * time.Second)
+
+	}
+}
+
 func main() {
 	// Creazione di un nuovo oggetto Registry
 	registry := new(Registry)
+	go isNodeAlive()
 	rpc.Register(registry) //l'oggetto registry viene registrato per consentire la comunicazione RPC.
 	rpc.HandleHTTP()
 	l, e := net.Listen("tcp", ":1234")
