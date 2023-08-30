@@ -283,19 +283,36 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		}
 
 		var nodoContact string
-		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
-		if err != nil {
-			log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
-		}
-		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
-		if err != nil {
-			log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
-		}
-		//fmt.Printf("Devo contattare in AddObject -> %s \n", nodoContact)
+		/*
+			client, err := rpc.DialHTTP("tcp", RegistryFromInside)
+			if err != nil {
+				log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
+			}
+			err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
+			if err != nil {
+				log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
+			}
+			//fmt.Printf("Devo contattare in AddObject -> %s \n", nodoContact)
 
-		client.Close()
+			client.Close()*/
+		if nodoContactId == sha_adapted(node.Successor) {
+			nodoContact = node.Successor
+		} else if nodoContactId == sha_adapted(node.Predecessor) {
+			nodoContact = node.Predecessor
+		} else {
+			client, err := rpc.DialHTTP("tcp", node.Successor)
+			if err != nil {
+				log.Fatal("Errore nodo SearchObject: non riesco a contattare il registry dall'interno  ", err)
+			}
+			err = client.Call("OtherNode.GiveNodeLookup", nodoContactId, &nodoContact)
+			if err != nil {
+				log.Fatal("Errore nodo SearchObject: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+			}
 
-		client, err = rpc.DialHTTP("tcp", nodoContact)
+			client.Close()
+		}
+
+		client, err := rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
 			//fmt.Printf("Errore nodo AddObject con %s \n", nodoContact)
 			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo fornito dal registry  ", err)
@@ -355,20 +372,25 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 		if !isFound {
 			nodoContactId = node.Finger[len(node.Finger)-1] //se l'id risorsa eccede tutta la mia ft, allora inoltro all'ultimo nodo conosciuto.
 		}
-		//adesso devo chiedere al registry chi è questo nodo con indice
 		var nodoContact string
-		client, err := rpc.DialHTTP("tcp", RegistryFromInside)
-		if err != nil {
-			log.Fatal("Errore nodo SearchObject: non riesco a contattare il registry dall'interno  ", err)
-		}
-		err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
-		if err != nil {
-			log.Fatal("Errore nodo SearchObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
-		}
+		if nodoContactId == sha_adapted(node.Successor) {
+			nodoContact = node.Successor
+		} else if nodoContactId == sha_adapted(node.Predecessor) {
+			nodoContact = node.Predecessor
+		} else {
+			client, err := rpc.DialHTTP("tcp", node.Successor)
+			if err != nil {
+				log.Fatal("Errore nodo SearchObject: non riesco a contattare il registry dall'interno  ", err)
+			}
+			err = client.Call("OtherNode.GiveNodeLookup", nodoContactId, &nodoContact)
+			if err != nil {
+				log.Fatal("Errore nodo SearchObject: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+			}
 
-		client.Close()
-
-		client, err = rpc.DialHTTP("tcp", nodoContact)
+			client.Close()
+		}
+		fmt.Printf("Contatto [%d:%s]\n", nodoContactId, nodoContact)
+		client, err := rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
 			log.Fatal("Errore nodo SearchObject: non riesco a contattare il nodo trovato sulla FT  ", err)
 		}
@@ -383,12 +405,38 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 	return nil
 }
 
+func (t *OtherNode) GiveNodeLookup(idNodo int, ipNodo *string) error {
+	if idNodo == sha_adapted(node.Successor) {
+		*ipNodo = node.Successor
+	} else if idNodo == sha_adapted(node.Predecessor) {
+		*ipNodo = node.Predecessor
+	} else {
+		client, err := rpc.DialHTTP("tcp", node.Successor)
+		if err != nil {
+			log.Fatal("Errore nodo GiveNodeLookup: non riesco a contattare nodo successore per richiedere IP  ", err)
+		}
+		err = client.Call("OtherNode.GiveNodeLookup", idNodo, &ipNodo)
+		if err != nil {
+			log.Fatal("Errore nodo GiveNodeLookup: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+		}
+
+		client.Close()
+	}
+
+	return nil
+
+}
+
 func scanRing(me *Node, stopChan <-chan struct{}) {
 	time.Sleep(5 * time.Second)
 	neightbors := getNeighbors(me.Ip)
 	me.Successor = neightbors.Successor
 	me.Predecessor = neightbors.Predecessor
-	var ask bool = false
+	//var ask bool = false
+	me.Objects = getKeys(me)
+	if len(me.Objects) != 0 {
+		fmt.Println(me.Objects)
+	}
 
 	for {
 		select {
@@ -397,18 +445,14 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 			return
 		default:
 			time.Sleep(10 * time.Second)
-			if !ask {
+			/*if !ask {
 				me.Objects = getKeys(me)
 				if len(me.Objects) != 0 {
 					fmt.Println(me.Objects)
 				}
 				ask = true
-			} /*neightbors := getNeighbors(me.Ip)
-			me.Successor = neightbors.Successor
-			me.Id = sha_adapted(me.Ip)
-			me.Predecessor = neightbors.Predecessor*/
+			}*/
 			Finger(me)
-			PrintFingerTable(me)
 
 		}
 
@@ -465,6 +509,7 @@ func Finger(me *Node) error {
 
 	}
 	me.Finger = fingerTable
+	PrintFingerTable(me)
 	return nil
 }
 

@@ -127,13 +127,6 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	return nil
 }
 
-func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
-	//fmt.Printf("ricevo %d ritorno: %s \n", idNodo, Nodes[idNodo])
-	*ipNodo = Nodes[idNodo]
-	return nil
-
-}
-
 /*
 Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia presente nel sistema, lo contatto per avviare il processo di aggiornamento dei nodi vicini.)
 */
