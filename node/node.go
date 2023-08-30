@@ -8,6 +8,7 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Node struct {
@@ -42,12 +43,13 @@ func newNode(ip string) *Node {
 type Neighbors struct {
 	Successor   string
 	Predecessor string
+	MiddleNode  string
 }
 
 // funzione per ottenere i nodi vicini.
 func getNeighbors(ip string) *Neighbors {
-
-	result := new(Neighbors)
+	var result string
+	neighbors := new(Neighbors)
 	arg := new(Arg)
 	arg.Value = ip
 	arg.Id = sha_adapted(ip)
@@ -55,54 +57,59 @@ func getNeighbors(ip string) *Neighbors {
 	if err != nil {
 		log.Fatal("Errore nodo getNeighbors: non riesco a contattare il registry dall'interno  ", err)
 	}
-	err = client.Call("Registry.Neighbors", arg, &result)
+	err = client.Call("Registry.Neighbors", arg, &neighbors)
 	if err != nil {
 		log.Fatal("Errore nodo getNeighbors: non riesco a chiamare Registry.Neighbors  ", err)
 	}
-
+	//fmt.Printf("io %s, predecessore %s, successore %s\n", ip, neighbors.Predecessor, neighbors.Successor)
 	client.Close()
-	return result
+	neighbors.MiddleNode = ip
+	if (ip != neighbors.Successor) && (ip != neighbors.Predecessor) { //se ip = successor = predecessor mi starei contattando da solo!
+		if neighbors.Successor != "" {
+
+			client, err = rpc.DialHTTP("tcp", neighbors.Successor)
+			if err != nil {
+				log.Fatal("Errore nodo getNeighbors: non riesco a contattare il neighbors.Successor  ", err)
+			}
+			err = client.Call("OtherNode.UpdateSuccessor", neighbors, &result)
+			if err != nil {
+				log.Fatal("Errore nodo getNeighbors: non riesco a chiamare OtherNode.UpdateSuccessor  ", err)
+			}
+			client.Close()
+		}
+		if neighbors.Predecessor != "" {
+			client, err = rpc.DialHTTP("tcp", neighbors.Predecessor)
+			if err != nil {
+				log.Fatal("Errore nodo getNeighbors: non riesco a contattare il neighbors.Predecessor  ", err)
+			}
+			err = client.Call("OtherNode.UpdatePredecessor", neighbors, &result)
+			if err != nil {
+				log.Fatal("Errore nodo getNeighbors: non riesco a chiamare OtherNode.UpdatePredecessor  ", err)
+			}
+			client.Close()
+		}
+
+	}
+
+	return neighbors
 
 }
 
-// funzione per creare una finger table da parte del nodo. Il registry fornisce gli id da inserire nella FT.
-func CreateFingerTable(node *Node) error {
-	arg := new(Arg)
-	arg.Value = node.Ip
-	arg.Id = sha_adapted(node.Ip)
-	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
-	if err != nil {
-		log.Fatal("Errore nodo CreateFingerTable: non riesco a contattare il registry dall'interno  ", err)
-	}
-	err = client.Call("Registry.Finger", arg, &node.Finger)
-	if err != nil {
-		log.Fatal("Errore nodo CreateFingerTable: non riesco a chiamare Registry.Finger  ", err)
-	}
+func (t *OtherNode) UpdateSuccessor(arg *Neighbors, result *string) error {
 
-	client.Close()
+	node.Predecessor = arg.MiddleNode
+	//fmt.Printf("Node %d, il mio nuovo predecessore e' [%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
+
 	return nil
 
 }
 
-// funzione che permette ad un nodo di refreshare la propria FT.
-func refreshNeighbors(node *Node) *Neighbors {
+func (t *OtherNode) UpdatePredecessor(arg *Neighbors, result *string) error {
 
-	result := new(Neighbors)
-	arg := new(Arg)
-	arg.Value = node.Ip
-	arg.Id = sha_adapted(node.Ip)
+	node.Successor = arg.MiddleNode
+	//fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
 
-	client, err := rpc.DialHTTP("tcp", RegistryFromInside)
-	if err != nil {
-		log.Fatal("Errore nodo refreshNeighbors: non riesco a contattare il registry dall'interno  ", err)
-	}
-	err = client.Call("Registry.RefreshNeighbors", arg, &result)
-	if err != nil {
-		log.Fatal("Errore nodo refreshNeighbors: non riesco a chiamare Registry.RefreshNeighbors  ", err)
-	}
-
-	client.Close()
-	return result
+	return nil
 
 }
 
@@ -155,6 +162,22 @@ func (t *OtherNode) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *strin
 		delete(nodoChiamante.Objects, key)
 
 	}
+
+	return nil
+
+}
+
+func (t *OtherNode) PredecessorAfterCrash(nodoChiamante string, reply *string) error {
+	node.Successor = nodoChiamante
+	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
+
+	return nil
+
+}
+
+func (t *OtherNode) SuccessorAfterCrash(nodoChiamante string, reply *string) error {
+	node.Predecessor = nodoChiamante
+	fmt.Printf("Node %d, il mio nuovo predecessore e' [%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 
 	return nil
 
@@ -224,6 +247,7 @@ Se l'oggetto non è di competenza del nodo in questione, cerca nella sua FT il n
 func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 
 	idRisorsa := sha_adapted(arg.Value)
+	//fmt.Printf("id risorsa: %d\n", idRisorsa)
 	idPredecessor := sha_adapted(node.Predecessor)
 	idSuccessor := sha_adapted(node.Successor)
 
@@ -240,16 +264,19 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		isFound := false
 
 		var nodoContactId int
-		for i := 1; i < len(node.Finger)-1; i++ {
-			if (idRisorsa <= node.Finger[1]) && (node.Id < idRisorsa) {
-				nodoContactId = node.Finger[1]
-				isFound = true
-				break
-			} else if (idRisorsa >= node.Finger[i]) && (idRisorsa < node.Finger[i+1]) {
-				nodoContactId = node.Finger[i]
-				isFound = true
-				break
+		if (node.Id < idRisorsa) && (idRisorsa <= node.Finger[1]) {
+			nodoContactId = node.Finger[1]
+			isFound = true
+		} else {
+			for i := 1; i < len(node.Finger)-1; i++ { //ispeziono FT
+
+				if (idRisorsa > node.Finger[i]) && (idRisorsa <= node.Finger[i+1]) {
+					nodoContactId = node.Finger[i+1]
+					isFound = true
+					break
+				}
 			}
+
 		}
 		if !isFound {
 			nodoContactId = node.Finger[len(node.Finger)-1]
@@ -264,11 +291,14 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		if err != nil {
 			log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
 		}
+		//fmt.Printf("Devo contattare in AddObject -> %s \n", nodoContact)
+
 		client.Close()
 
 		client, err = rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
-			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo trovato sulla FT  ", err)
+			//fmt.Printf("Errore nodo AddObject con %s \n", nodoContact)
+			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo fornito dal registry  ", err)
 		}
 
 		err = client.Call("OtherNode.AddObject", arg, &reply)
@@ -354,26 +384,118 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 }
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
+	time.Sleep(5 * time.Second)
+	neightbors := getNeighbors(me.Ip)
+	me.Successor = neightbors.Successor
+	me.Predecessor = neightbors.Predecessor
+	var ask bool = false
+
 	for {
 		select {
 		case <-stopChan:
 			fmt.Printf("Connessione interrotta correttamente.")
 			return
 		default:
-
-			neightbors := refreshNeighbors(me)
-
+			time.Sleep(10 * time.Second)
+			if !ask {
+				me.Objects = getKeys(me)
+				if len(me.Objects) != 0 {
+					fmt.Println(me.Objects)
+				}
+				ask = true
+			} /*neightbors := getNeighbors(me.Ip)
 			me.Successor = neightbors.Successor
-			if neightbors.Predecessor != "" {
-				me.Predecessor = neightbors.Predecessor
-			}
-			CreateFingerTable(me)
+			me.Id = sha_adapted(me.Ip)
+			me.Predecessor = neightbors.Predecessor*/
+			Finger(me)
 			PrintFingerTable(me)
 
 		}
 
 	}
 
+}
+
+var m int
+
+func Finger(me *Node) error {
+	id := me.Id
+	var result int
+	var err error
+	var idSucc = sha_adapted(me.Successor)
+
+	m, err = ReadFromConfig() //leggo "m" dal json
+	if err != nil {
+		log.Fatal("Errore nella lettura del file config.json, ", err)
+	}
+	fingerTable := make([]int, m+1)
+	fingerTable[0] = me.Id
+	fingerTable[1] = idSucc
+
+	for i := 2; i <= m; i++ {
+		// Calcola id + 2^(i-1) mod (2^m)
+		val := (id + (1 << (i - 1))) % (1 << m)
+		//fmt.Printf("valore modulo è %d\n", val)
+		if id == idSucc {
+			fingerTable[i] = id
+			//esempi per le ultime due condizioni   es: id 29, idSucc 2, val 31             //id: 29, idSucc 2, val 1
+		} else if ((val > id) && (val <= idSucc)) || ((val > id) && (id > idSucc)) || ((id > idSucc) && (val < id) && (val <= idSucc)) {
+
+			fingerTable[i] = idSucc
+		} else {
+			client, err := rpc.DialHTTP("tcp", me.Successor)
+
+			if err != nil {
+				result = ContactRegistryAliveNode(me.Successor, idSucc)
+
+				if result == 0 {
+					return nil //se result == 0, allora il nodo è caduto. quindi interrompo la comunicazione. Il registry cancellerà il nodo dalla lista nodi. Dopo riaggiorno la FT.
+				} else {
+					log.Fatal("Errore nodo Finger: il nodo da contattare è attivo, ma non riesco a instaurare una connessione.", err)
+				}
+			}
+
+			err = client.Call("OtherNode.FindSuccessor", val, &result)
+			if err != nil {
+				log.Fatal("Errore nodo Finger: non riesco a chiamare OtherNode.FindSuccessor ", err)
+			}
+			fingerTable[i] = result
+			client.Close()
+		}
+
+	}
+	me.Finger = fingerTable
+	return nil
+}
+
+func (t *OtherNode) FindSuccessor(val int, reply *int) error {
+	var result int
+
+	var idSucc = sha_adapted(node.Successor)
+	if ((val > node.Id) && (val <= idSucc)) || ((val > node.Id) && (node.Id > idSucc)) || ((node.Id > idSucc) && (val < node.Id) && (val <= idSucc)) {
+
+		*reply = idSucc
+
+	} else { //if val > idSucc
+
+		client, err := rpc.DialHTTP("tcp", node.Successor)
+		if err != nil {
+			result = ContactRegistryAliveNode(node.Successor, idSucc)
+			if result == 0 { //se result == 0, allora il nodo è caduto. quindi interrompo la comunicazione. Il registry cancellerà il nodo dalla lista nodi. Dopo riaggiorno la FT.
+				return nil
+			} else {
+				log.Fatal("Errore nodo Finger: il nodo da contattare è attivo, ma non riesco a instaurare una connessione.", err)
+			}
+		}
+		err = client.Call("OtherNode.FindSuccessor", val, &reply)
+		if err != nil {
+			log.Fatal("Errore nodo FindSuccesor: non riesco a chiamare OtherNode.FindSuccessor ", err)
+		}
+		client.Close()
+
+	}
+
+	return nil
 }
 
 func main() {
@@ -393,23 +515,23 @@ func main() {
 	ipPortString := fmt.Sprintf("%s:%s", ipAddress, ipPort)
 
 	me := newNode(ipPortString)
-	neightbors := getNeighbors(me.Ip)
-	me.Successor = neightbors.Successor
 	me.Id = sha_adapted(me.Ip)
-	me.Predecessor = neightbors.Predecessor
+
+	/*neightbors := getNeighbors(me.Ip)
+	me.Successor = neightbors.Successor
+	me.Predecessor = neightbors.Predecessor*/
 
 	fmt.Printf("Io sono %d, Indirizzo IP:%s\n", me.Id, ipPortString)
-
-	me.Objects = getKeys(me)
-	if len(me.Objects) != 0 {
-		fmt.Println(me.Objects)
-	}
-
-	go scanRing(me, stopChan)
 
 	othernode := new(OtherNode)
 	rpc.Register(othernode)
 	rpc.HandleHTTP()
+
+	/*me.Objects = getKeys(me)
+	if len(me.Objects) != 0 {
+		fmt.Println(me.Objects)
+	}*/
+	go scanRing(me, stopChan)
 
 	listener, err := net.Listen("tcp", ipPortString)
 	if err != nil {

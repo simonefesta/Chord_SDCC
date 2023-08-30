@@ -4,7 +4,9 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
+	"net/rpc"
 	"os"
 	"path/filepath"
 	"time"
@@ -77,4 +79,25 @@ func PrintFingerTable(me *Node) {
 	fmt.Printf("\n")
 	time.Sleep(15 * time.Second)
 
+}
+
+// se il nodo non risponde, chiedo al registry di verificare se sia attivo
+func ContactRegistryAliveNode(nodetocheck string, idnodetocheck int) int {
+	var reply int
+	register, err := rpc.DialHTTP("tcp", RegistryFromInside)
+	if err != nil {
+		log.Fatal("Errore nodo Finger: non riesco a contattare il registry dall'interno per vedere se un nodo è vivo ", err)
+	}
+	arg := new(Arg)
+	arg.Value = nodetocheck
+	arg.Id = idnodetocheck
+	err = register.Call("Registry.IsNodeAlive", arg, &reply)
+	if err != nil {
+		log.Fatal("Errore nodo Finger: non riesco a chiamare Registry.isNodeAlive ", err)
+		return -1
+
+	}
+	register.Close()
+
+	return 0
 }

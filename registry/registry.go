@@ -34,52 +34,6 @@ type NeighborsReply struct {
 
 var m int //numero di bits
 
-func (t *Registry) Finger(arg *Arg, reply *[]int) error {
-	id := arg.Id
-
-	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
-	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
-	idInNodes := false                 //mi chiedo se l'id per cui calcolo la FT sia nella lista dei nodi. Questo perchè, se elimino un nodo dalla lista di nodi, potrei comunque calcolare la sua FT.
-
-	for k := range Nodes {
-		keys = append(keys, k)
-		if id == k {
-			idInNodes = true
-		}
-	}
-	if idInNodes { //se il nodo è nella lista, allora calcolo effettivamente la FT, sennò non ha senso.
-		sort.Ints(keys)
-
-		fingerTable := make([]int, m+1)
-
-		for i := 1; i <= m; i++ {
-			// Calcola id + 2^(i-1) mod (2^m)
-			val := (id + (1 << (i - 1))) % (1 << m)
-			foundSuccessor := false
-
-			for _, k := range keys { //sono ordinate
-
-				if val <= k {
-
-					fingerTable[i] = k
-					foundSuccessor = true
-
-					break
-
-				}
-			}
-			if !foundSuccessor { //se non ho trovato nessun successore, allora è una risorsa del primo nodo.
-				fingerTable[i] = keys[0]
-			}
-		}
-		fingerTable[0] = arg.Id
-
-		*reply = fingerTable
-	}
-	return nil
-
-}
-
 func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	id := arg.Id
 	var err error
@@ -93,13 +47,13 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 		Nodes[id] = arg.Value
 		reply.Successor = arg.Value   //successore di sè stesso
 		reply.Predecessor = arg.Value //predecessore di me stesso
-		fmt.Println(Nodes)
+		//fmt.Println(Nodes)
 		return nil
 	}
 	if Nodes[id] != "" { //verifica se l'elemento con l'indice id nell'array Nodes non è una stringa vuota.
 		reply.Successor = "" //se sto registrando un id già esistente, non posso aggiungerlo
 		reply.Predecessor = ""
-		return errors.New("esiste già un nodo con questo ID (o si è verificata una collisione!)")
+		return errors.New("esiste già un nodo con questo ID")
 
 	}
 	if len(Nodes) >= (1 << m) { //limite massimo nodi raggiunto
@@ -112,7 +66,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	for k := range Nodes {
 		keys = append(keys, k)
 	}
-	//adesso in keys ho tutte le chiavi 'k'
+	//adesso in keys ho tutte le chiavi 'k', tranne quella del nodo di cui sto trovando predecessore e successore.
 
 	sort.Ints(keys)
 	Nodes[id] = arg.Value //metto il nodo in Nodes
@@ -121,78 +75,32 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	prevKey := keys[0]
 	//cerco il successore
 	for _, k := range keys { //sono ordinate
+		//fmt.Printf("sto confrontando la chiave %d con k = %d", id, k)
 		if id < k { //appena trovo che id è minore di una certa chiave, tale chiave è il successore
+			//	fmt.Printf("Il nodo successore associato a k = %d è %s\n", k, Nodes[k])
+
 			reply.Successor = Nodes[k]
 			if len(keys) == 1 {
 				reply.Predecessor = Nodes[k]
+			}
+			if id < keys[0] { //qui gestisco il caso in cui il nuovo nodo in aggiunta è quello con id più piccolo.
+				reply.Predecessor = Nodes[keys[len(keys)-1]]
 			} else {
 				reply.Predecessor = Nodes[prevKey]
+
 			}
+			/*fmt.Printf("Il nodo predecessore associato a k = %d è %s\n", prevKey, Nodes[k])
+
+			fmt.Printf("Per %d ho trovato prec %s e succ %s  NEL ciclo\n", id, reply.Predecessor, reply.Successor)*/
 
 			return nil
 		}
 		prevKey = k
 	}
-
 	reply.Successor = Nodes[keys[0]] //se il mio nodo è più grande di tutti, allora il successore è il nodo in posizione 0
-	reply.Predecessor = Nodes[len(keys)-1]
+	reply.Predecessor = Nodes[keys[len(keys)-1]]
+	//fmt.Printf("Per %d ho trovato prec %s e succ %s\n", id, reply.Predecessor, reply.Successor)
 
-	return nil
-}
-
-func (t *Registry) RefreshNeighbors(arg *Arg, reply *NeighborsReply) error {
-	id := arg.Id
-	if len(Nodes) <= 1 { //primo nodo
-		Nodes[id] = arg.Value
-		reply.Successor = arg.Value   //successore di sè stesso
-		reply.Predecessor = arg.Value //predecessore di me stesso
-		return nil
-	}
-
-	nodesMutex.Lock()
-	defer nodesMutex.Unlock()
-	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
-	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
-	isInNodes := false
-	for k := range Nodes {
-		keys = append(keys, k)
-		if id == k {
-			isInNodes = true
-		}
-	}
-	//adesso in keys ho tutte le chiavi 'k'
-	if isInNodes {
-		sort.Ints(keys)
-		Nodes[id] = arg.Value //metto il nodo in Nodes
-		var latestKey int
-		for _, k := range keys {
-			latestKey = k
-
-		}
-
-		prevKey := keys[0]
-		//cerco il successore
-		for _, k := range keys { //sono ordinate
-			if id < k { //appena trovo che id è minore di una certa chiave, tale chiave è il successore
-				reply.Successor = Nodes[k]
-				if id == keys[0] { //se sto analizzando il primo nodo, allora il pre
-					reply.Predecessor = Nodes[latestKey]
-				} else {
-					reply.Predecessor = Nodes[prevKey]
-				}
-
-				return nil
-
-			} else if id != k {
-				prevKey = k
-			}
-
-		} //sono il più grande
-
-		reply.Successor = Nodes[keys[0]]
-		reply.Predecessor = Nodes[prevKey]
-
-	}
 	return nil
 }
 
@@ -212,28 +120,31 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	lastSelectedNode = (lastSelectedNode + 1) % len(keys) // Calcola l'indice del prossimo nodo
 
 	nodeContact := Nodes[keys[lastSelectedNode]]
+	/*fmt.Printf("contatto %s ", ObtainAddress(nodeContact))
+	fmt.Printf("ovvero %s\n", nodeContact)*/
 	*reply = ObtainAddress(nodeContact)
 
 	return nil
 }
 
 func (t *Registry) GiveNodeLookup(idNodo int, ipNodo *string) error {
+	//fmt.Printf("ricevo %d ritorno: %s \n", idNodo, Nodes[idNodo])
 	*ipNodo = Nodes[idNodo]
 	return nil
 
 }
 
 /*
- Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia presente nel sistema, lo contatto per avviare il processo di aggiornamento dei nodi vicini.)
+Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia presente nel sistema, lo contatto per avviare il processo di aggiornamento dei nodi vicini.)
 */
-
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
-	if len(Nodes) <= 2 {
+	/*if len(Nodes) <= 2 {
 		*reply = "Raggiunto il lower bound di 2 nodi nella rete. Impossibile cancellarne altri."
 		return nil
 
-	}
+	} */
+
 	if isNodePresent(Nodes, idNodo) {
 
 		removedNode := Nodes[idNodo]
@@ -264,29 +175,103 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 }
 
-func isNodeAlive() {
-	time.Sleep(10 * time.Second)
-	for {
-		for index, node := range Nodes {
-			client, err := net.DialTimeout("tcp", node, 10*time.Second)
-			if err != nil {
-				fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", index, node)
-				delete(Nodes, index)
+func (t *Registry) IsNodeAlive(arg *Arg, reply *int) error {
+	node := arg.Value
+	id := arg.Id
+	if isNodePresent(Nodes, id) {
+		client, err := net.DialTimeout("tcp", node, 10*time.Second)
+		if err != nil {
+			fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", id, node)
+			delete(Nodes, id)
+			FixNeighbors(id)
 
-			} else {
-				client.Close()
-			}
+		} else {
+			client.Close() //se un nodo è crollato, posso forzare aggiornamento
 
 		}
-		time.Sleep(5 * time.Second)
+	}
+	return nil
+}
+
+func FixNeighbors(id int) error {
+	var succKey int
+	var predKey int
+	var result string
+
+	nodesMutex.Lock()
+	defer nodesMutex.Unlock()
+	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
+	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
+	for k := range Nodes {
+		keys = append(keys, k)
 
 	}
+	//adesso in keys ho tutte le chiavi 'k'
+	var isFound bool = false
+	var lastKey int
+	sort.Ints(keys)
+	for i, k := range keys {
+		if k >= id {
+			if i > 0 {
+				predKey = keys[i-1]
+			} else {
+				predKey = keys[len(keys)-1] //se cade il primo nodo, allora il suo precedente era l'ultimo nodo dell'anello.
+			}
+			succKey = k
+			isFound = true
+			break
+		}
+		lastKey = k //se non si verifica il controllo, mantengo la chiave dell'ultimo elemento dell'anello.
+	}
+
+	if !isFound {
+		if len(Nodes) <= 1 {
+			predKey = lastKey
+			succKey = lastKey
+		}
+		if id > lastKey { //se cade ultimo nodo anello, allora il nodo prima dell'ultimo nodo è il precedente del primo nodo dell'anello, e viceversa. Controllo non dovrebbe servire.
+			predKey = lastKey
+			succKey = keys[0]
+		}
+	}
+	/*fmt.Printf("Caduto %d, il suo predecessoree era %d, il suo successore era %d\n", id, predKey, succKey)
+	fmt.Printf("Contatto il predecessore %s per aggiornare il suo successore con %s\n", Nodes[predKey], Nodes[succKey])*/
+
+	client, err := rpc.DialHTTP("tcp", Nodes[predKey]) //contatto il nodo
+	if err != nil {
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a contattere il predecessore, ", err)
+	}
+
+	err = client.Call("OtherNode.PredecessorAfterCrash", Nodes[succKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	if err != nil {
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.PredecessorAfterCrash: ", err)
+
+	}
+
+	client.Close()
+
+	//fmt.Printf("Contatto il successore %s per aggiornare il suo predecessore con %s\n", Nodes[succKey], Nodes[predKey])
+
+	client, err = rpc.DialHTTP("tcp", Nodes[succKey]) //contatto il nodo
+	if err != nil {
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a contattere il predecessore, ", err)
+	}
+
+	err = client.Call("OtherNode.SuccessorAfterCrash", Nodes[predKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	if err != nil {
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.SuccessorAfterCrash: ", err)
+
+	}
+
+	client.Close()
+
+	return nil
+
 }
 
 func main() {
 	// Creazione di un nuovo oggetto Registry
 	registry := new(Registry)
-	go isNodeAlive()
 	rpc.Register(registry) //l'oggetto registry viene registrato per consentire la comunicazione RPC.
 	rpc.HandleHTTP()
 	l, e := net.Listen("tcp", ":1234")
