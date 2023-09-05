@@ -101,3 +101,66 @@ func ContactRegistryAliveNode(nodetocheck string, idnodetocheck int) int {
 
 	return 0
 }
+
+func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo chiede al suo predecessore se è lui a gestire la risorsa.
+
+	idRisorsa := arg.Id
+	idPredecessor := sha_adapted(node.Predecessor)
+	idSuccessor := sha_adapted(node.Successor)
+	switch arg.PredOp {
+	case "add":
+		if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			if node.Objects[idRisorsa] != "" {
+				*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
+			} else {
+				node.Objects[idRisorsa] = arg.Value
+				*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
+				fmt.Printf("Nodo: %d, %v\n", node.Id, node.Objects)
+			}
+
+		}
+	case "searchOrRemove":
+
+		if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			if node.Objects[idRisorsa] == "" { //se non c'è
+				*reply = "L'oggetto cercato non è presente.\n"
+			} else {
+				if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
+					*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è stato rimosso.\n", idRisorsa, node.Objects[idRisorsa])
+					delete(node.Objects, idRisorsa)
+					fmt.Printf("Nodo: %d, Objects: %v\n", node.Id, node.Objects)
+
+				} else {
+					*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è posseduto dal nodo '%d'.\n", idRisorsa, node.Objects[idRisorsa], node.Id)
+
+				}
+			}
+		}
+
+	}
+
+	return nil
+
+}
+
+func (t *OtherNode) GiveNodeLookup(idNodo int, ipNodo *string) error {
+	if idNodo == sha_adapted(node.Successor) {
+		*ipNodo = node.Successor
+	} else if idNodo == sha_adapted(node.Predecessor) {
+		*ipNodo = node.Predecessor
+	} else {
+		client, err := rpc.DialHTTP("tcp", node.Successor)
+		if err != nil {
+			log.Fatal("Errore nodo GiveNodeLookup: non riesco a contattare nodo successore per richiedere IP  ", err)
+		}
+		err = client.Call("OtherNode.GiveNodeLookup", idNodo, &ipNodo)
+		if err != nil {
+			log.Fatal("Errore nodo GiveNodeLookup: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+		}
+
+		client.Close()
+	}
+
+	return nil
+
+}

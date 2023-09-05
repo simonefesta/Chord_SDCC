@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"net/rpc"
 	"sort"
-	"sync"
 	"time"
 )
 
-var nodesMutex sync.Mutex
+//var nodesMutex sync.Mutex
 
 var Nodes = make(map[int]string) //il registry mantiene un vettore di indice intero e valore 'string'. L'indice è l'id del nodo, il valore è l'ip+porta.
 
@@ -118,7 +117,9 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 }
 
 /*
-Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia presente nel sistema, lo contatto per avviare il processo di aggiornamento dei nodi vicini.)
+	****** Funzione per la rimozione dei nodi controllata *********************************************************************************************.
+
+Scelto il nodo da eliminare (qualora sia presente nel sistema), lo contatto per avviare il processo di aggiornamento dei nodi vicini.
 */
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
@@ -153,32 +154,17 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 
 }
 
-func (t *Registry) IsNodeAlive(arg *Arg, reply *int) error {
-	node := arg.Value
-	id := arg.Id
-	if isNodePresent(Nodes, id) {
-		client, err := net.DialTimeout("tcp", node, 5*time.Second)
-		if err != nil {
-			fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", id, node)
-			delete(Nodes, id)
-			fmt.Println(Nodes)
-			FixNeighbors(id)
-
-		} else {
-			client.Close()
-
-		}
-	}
-	return nil
-}
-
+/*
+*************** Gestione nodo caduto **************************************************************************************************************************
+Se un nodo cade, il registry trova i nodi adiacenti (considerando anche i casi limite ai bordi) e li contatta per metterli in comunicazione tra loro.
+*/
 func FixNeighbors(id int) error {
 	var succKey int
 	var predKey int
 	var result string
 
-	nodesMutex.Lock()
-	defer nodesMutex.Unlock()
+	//nodesMutex.Lock()
+	//defer nodesMutex.Unlock()
 	//questo pezzo aggiorna ed ordina la lista dei nodi nel registry. Lo vediamo graficamente nel registry.
 	keys := make([]int, 0, len(Nodes)) //slice delle chiavi
 	for k := range Nodes {
@@ -242,6 +228,25 @@ func FixNeighbors(id int) error {
 
 	return nil
 
+}
+
+func (t *Registry) IsNodeAlive(arg *Arg, reply *int) error {
+	node := arg.Value
+	id := arg.Id
+	if isNodePresent(Nodes, id) {
+		client, err := net.DialTimeout("tcp", node, 5*time.Second)
+		if err != nil {
+			fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", id, node)
+			delete(Nodes, id)
+			fmt.Println(Nodes)
+			FixNeighbors(id)
+
+		} else {
+			client.Close()
+
+		}
+	}
+	return nil
 }
 
 func main() {
