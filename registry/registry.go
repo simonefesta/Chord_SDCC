@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -47,7 +46,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 		Nodes[id] = arg.Value
 		reply.Successor = arg.Value   //successore di sè stesso
 		reply.Predecessor = arg.Value //predecessore di me stesso
-		//fmt.Println(Nodes)
 		return nil
 	}
 	if Nodes[id] != "" { //verifica se l'elemento con l'indice id nell'array Nodes non è una stringa vuota.
@@ -75,10 +73,7 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	prevKey := keys[0]
 	//cerco il successore
 	for _, k := range keys { //sono ordinate
-		//fmt.Printf("sto confrontando la chiave %d con k = %d", id, k)
 		if id < k { //appena trovo che id è minore di una certa chiave, tale chiave è il successore
-			//	fmt.Printf("Il nodo successore associato a k = %d è %s\n", k, Nodes[k])
-
 			reply.Successor = Nodes[k]
 			if len(keys) == 1 {
 				reply.Predecessor = Nodes[k]
@@ -89,9 +84,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 				reply.Predecessor = Nodes[prevKey]
 
 			}
-			/*fmt.Printf("Il nodo predecessore associato a k = %d è %s\n", prevKey, Nodes[k])
-
-			fmt.Printf("Per %d ho trovato prec %s e succ %s  NEL ciclo\n", id, reply.Predecessor, reply.Successor)*/
 
 			return nil
 		}
@@ -99,7 +91,6 @@ func (t *Registry) Neighbors(arg *Arg, reply *NeighborsReply) error {
 	}
 	reply.Successor = Nodes[keys[0]] //se il mio nodo è più grande di tutti, allora il successore è il nodo in posizione 0
 	reply.Predecessor = Nodes[keys[len(keys)-1]]
-	//fmt.Printf("Per %d ho trovato prec %s e succ %s\n", id, reply.Predecessor, reply.Successor)
 
 	return nil
 }
@@ -120,8 +111,7 @@ func (t *Registry) EnterRing(arg *Arg, reply *string) error {
 	lastSelectedNode = (lastSelectedNode + 1) % len(keys) // Calcola l'indice del prossimo nodo
 
 	nodeContact := Nodes[keys[lastSelectedNode]]
-	/*fmt.Printf("contatto %s ", ObtainAddress(nodeContact))
-	fmt.Printf("ovvero %s\n", nodeContact)*/
+
 	*reply = ObtainAddress(nodeContact)
 
 	return nil
@@ -132,11 +122,6 @@ Funzione per la rimozione dei nodi. Scelto il nodo da eliminare (qualora sia pre
 */
 func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 	idNodo := arg.Id
-	/*if len(Nodes) <= 2 {
-		*reply = "Raggiunto il lower bound di 2 nodi nella rete. Impossibile cancellarne altri."
-		return nil
-
-	} */
 
 	if isNodePresent(Nodes, idNodo) {
 
@@ -157,11 +142,11 @@ func (t *Registry) RemoveNode(arg *Arg, reply *string) error {
 		delete(Nodes, idNodo)
 		fmt.Printf("Nodi dopo la rimozione : %v\n", Nodes)
 
-		*reply = "Il nodo avente id: '" + strconv.Itoa(idNodo) + "' è stato eliminato.\n"
+		*reply = fmt.Sprintf("Il nodo avente id: '%d' è stato eliminato.\n", idNodo)
 		client.Close()
 
 	} else {
-		*reply = "Il nodo avente id '" + strconv.Itoa(idNodo) + "' non è presente e dunque non è eliminabile.\n"
+		*reply = fmt.Sprintf("Il nodo avente id '%d' non è presente e dunque non è eliminabile.\n", idNodo)
 	}
 
 	return nil
@@ -172,14 +157,15 @@ func (t *Registry) IsNodeAlive(arg *Arg, reply *int) error {
 	node := arg.Value
 	id := arg.Id
 	if isNodePresent(Nodes, id) {
-		client, err := net.DialTimeout("tcp", node, 10*time.Second)
+		client, err := net.DialTimeout("tcp", node, 5*time.Second)
 		if err != nil {
 			fmt.Printf("Non riesco a contattare [%d:%s], procedo con la sua rimozione.\n", id, node)
 			delete(Nodes, id)
+			fmt.Println(Nodes)
 			FixNeighbors(id)
 
 		} else {
-			client.Close() //se un nodo è crollato, posso forzare aggiornamento
+			client.Close()
 
 		}
 	}
@@ -227,32 +213,28 @@ func FixNeighbors(id int) error {
 			succKey = keys[0]
 		}
 	}
-	/*fmt.Printf("Caduto %d, il suo predecessoree era %d, il suo successore era %d\n", id, predKey, succKey)
-	fmt.Printf("Contatto il predecessore %s per aggiornare il suo successore con %s\n", Nodes[predKey], Nodes[succKey])*/
 
 	client, err := rpc.DialHTTP("tcp", Nodes[predKey]) //contatto il nodo
 	if err != nil {
 		log.Fatal("Errore nel registry FixNeighbors: non riesco a contattere il predecessore, ", err)
 	}
 
-	err = client.Call("OtherNode.PredecessorAfterCrash", Nodes[succKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	err = client.Call("OtherNode.UpdatePredecessorNode", Nodes[succKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
 	if err != nil {
-		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.PredecessorAfterCrash: ", err)
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.UpdatePredecessorNode: ", err)
 
 	}
 
 	client.Close()
-
-	//fmt.Printf("Contatto il successore %s per aggiornare il suo predecessore con %s\n", Nodes[succKey], Nodes[predKey])
 
 	client, err = rpc.DialHTTP("tcp", Nodes[succKey]) //contatto il nodo
 	if err != nil {
 		log.Fatal("Errore nel registry FixNeighbors: non riesco a contattere il predecessore, ", err)
 	}
 
-	err = client.Call("OtherNode.SuccessorAfterCrash", Nodes[predKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
+	err = client.Call("OtherNode.UpdateSuccessorNode", Nodes[predKey], &result) //avvio la pratica per fargli aggiornare precedente e successivo
 	if err != nil {
-		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.SuccessorAfterCrash: ", err)
+		log.Fatal("Errore nel registry FixNeighbors: non riesco a chiamare la funzione OtherNode.UpdateSuccessorNode: ", err)
 
 	}
 

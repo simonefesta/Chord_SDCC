@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/rpc"
 	"os"
-	"strconv"
 )
 
 type KeyboardArgoment struct { //Struct per gli argomenti passati da tastiera.
@@ -23,7 +22,7 @@ func main() {
 	keyboardArgoment := new(KeyboardArgoment) //creo nuova istanza di keyboardArgoment
 	var result string
 	var resp int
-	var input string
+	var input int
 
 	fmt.Println("1. Aggiungi oggetto, [PUT]")
 	fmt.Println("2. Cerca un oggetto, [GET]")
@@ -71,16 +70,13 @@ func main() {
 		case 2:
 			fmt.Print("Digita l'id dell'oggetto da cercare: ")
 
-			fmt.Scanln(&input)
 			keyboardArgoment.Choice = 2
-
-			id, err := strconv.Atoi(input)
+			_, err := fmt.Scan(&input)
 			if err != nil {
 				fmt.Println("Input non valido. Devi inserire un numero intero.")
 
 			} else {
-				keyboardArgoment.Id = id
-
+				keyboardArgoment.Id = input
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
 					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
@@ -111,15 +107,14 @@ func main() {
 		case 3:
 			fmt.Print("Digita l'id dell'oggetto da rimuovere: ")
 
-			fmt.Scanln(&input)
 			keyboardArgoment.Choice = 3 //per eliminare una chiave, devo cercarla, ma questo già lo faccio nel caso due.
 
-			id, err := strconv.Atoi(input)
+			_, err := fmt.Scan(&input)
 			if err != nil {
 				fmt.Println("Input non valido. Devi inserire un numero intero.")
 
 			} else {
-				keyboardArgoment.Id = id
+				keyboardArgoment.Id = input
 
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
@@ -151,14 +146,13 @@ func main() {
 
 		case 4:
 			fmt.Print("Digita l'id del nodo da rimuovere: ")
-			fmt.Scanln(&input)
 
-			id, err := strconv.Atoi(input)
+			_, err := fmt.Scan(&input)
 			if err != nil {
 				fmt.Println("Input non valido. Devi inserire un numero intero.")
 
 			} else {
-				keyboardArgoment.Id = id
+				keyboardArgoment.Id = input
 				client, err := rpc.DialHTTP("tcp", RegistryFromOutside)
 				if err != nil {
 					log.Fatal("Errore nel client: non riesco a connettermi al registry, ", err)
@@ -175,7 +169,7 @@ func main() {
 			}
 
 		default:
-			println("Scegliere una delle quattro opzioni, digitando '1','2','3'.")
+			println("Scegliere una delle quattro opzioni, digitando '1','2','3' o '4'.")
 		}
 	}
 }

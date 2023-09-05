@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -21,9 +20,10 @@ type Node struct {
 }
 
 type Arg struct {
-	Id    int
-	Value string //nel caso dei nodi è è il valore dell'indirizzo IP, per le risorse è il valore della risorsa.
-	Type  bool
+	Id     int
+	Value  string //nel caso dei nodi è è il valore dell'indirizzo IP, per le risorse è il valore della risorsa.
+	Type   bool
+	PredOp string //Nelle operazioni di inserimento, ricerca o cancellazione è possibile chiedere al predecessore se gestisca lui la risorsa. A seconda dell'operazione richiesta, esplicitata da PredOp, si avrà un comportamento diverso.
 }
 
 var RegistryFromInside string = "registry:1234"
@@ -61,7 +61,6 @@ func getNeighbors(ip string) *Neighbors {
 	if err != nil {
 		log.Fatal("Errore nodo getNeighbors: non riesco a chiamare Registry.Neighbors  ", err)
 	}
-	//fmt.Printf("io %s, predecessore %s, successore %s\n", ip, neighbors.Predecessor, neighbors.Successor)
 	client.Close()
 	neighbors.MiddleNode = ip
 	if (ip != neighbors.Successor) && (ip != neighbors.Predecessor) { //se ip = successor = predecessor mi starei contattando da solo!
@@ -71,7 +70,7 @@ func getNeighbors(ip string) *Neighbors {
 			if err != nil {
 				log.Fatal("Errore nodo getNeighbors: non riesco a contattare il neighbors.Successor  ", err)
 			}
-			err = client.Call("OtherNode.UpdateSuccessor", neighbors, &result)
+			err = client.Call("OtherNode.UpdateSuccessorNode", neighbors.MiddleNode, &result)
 			if err != nil {
 				log.Fatal("Errore nodo getNeighbors: non riesco a chiamare OtherNode.UpdateSuccessor  ", err)
 			}
@@ -82,7 +81,7 @@ func getNeighbors(ip string) *Neighbors {
 			if err != nil {
 				log.Fatal("Errore nodo getNeighbors: non riesco a contattare il neighbors.Predecessor  ", err)
 			}
-			err = client.Call("OtherNode.UpdatePredecessor", neighbors, &result)
+			err = client.Call("OtherNode.UpdatePredecessorNode", neighbors.MiddleNode, &result)
 			if err != nil {
 				log.Fatal("Errore nodo getNeighbors: non riesco a chiamare OtherNode.UpdatePredecessor  ", err)
 			}
@@ -95,19 +94,17 @@ func getNeighbors(ip string) *Neighbors {
 
 }
 
-func (t *OtherNode) UpdateSuccessor(arg *Neighbors, result *string) error {
-
-	node.Predecessor = arg.MiddleNode
-	//fmt.Printf("Node %d, il mio nuovo predecessore e' [%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
+func (t *OtherNode) UpdatePredecessorNode(nodoChiamante string, reply *string) error {
+	node.Successor = nodoChiamante
+	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
 
 	return nil
 
 }
 
-func (t *OtherNode) UpdatePredecessor(arg *Neighbors, result *string) error {
-
-	node.Successor = arg.MiddleNode
-	//fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
+func (t *OtherNode) UpdateSuccessorNode(nodoChiamante string, reply *string) error {
+	node.Predecessor = nodoChiamante
+	fmt.Printf("Node %d, il mio nuovo predecessore e' [%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
 
 	return nil
 
@@ -167,22 +164,6 @@ func (t *OtherNode) UpdateSuccessorNodeRemoved(nodoChiamante *Node, reply *strin
 
 }
 
-func (t *OtherNode) PredecessorAfterCrash(nodoChiamante string, reply *string) error {
-	node.Successor = nodoChiamante
-	fmt.Printf("Node %d, il mio nuovo successore e' [%d]:%s \n", node.Id, sha_adapted(node.Successor), node.Successor)
-
-	return nil
-
-}
-
-func (t *OtherNode) SuccessorAfterCrash(nodoChiamante string, reply *string) error {
-	node.Predecessor = nodoChiamante
-	fmt.Printf("Node %d, il mio nuovo predecessore e' [%d]:%s \n", node.Id, sha_adapted(node.Predecessor), node.Predecessor)
-
-	return nil
-
-}
-
 type Args struct { //argomenti da passare al metodo remoto OtherNode
 	Ip        string
 	CurrentIp string
@@ -201,7 +182,7 @@ func (t *OtherNode) Keys(arg *ArgId, reply *map[int]string) error {
 	for k := range node.Objects {
 		if (arg.Id <= idPredecessor && (k <= arg.Id || k > idPredecessor)) || (k <= arg.Id && k > idPredecessor) {
 			(*reply)[k] = node.Objects[k]
-			fmt.Printf("Node %d, ho un nuovo elemento: <%d, %s> \n", node.Id, k, node.Objects[k])
+			fmt.Printf("Node %d, ho un nuovo elemento: <%d, %s> \n", arg.Id, k, node.Objects[k])
 			delete(node.Objects, k)
 		}
 	}
@@ -247,18 +228,41 @@ Se l'oggetto non è di competenza del nodo in questione, cerca nella sua FT il n
 func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 
 	idRisorsa := sha_adapted(arg.Value)
-	//fmt.Printf("id risorsa: %d\n", idRisorsa)
 	idPredecessor := sha_adapted(node.Predecessor)
 	idSuccessor := sha_adapted(node.Successor)
 
 	if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
 		if node.Objects[idRisorsa] != "" {
 			*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
+			return nil
 		} else {
 			node.Objects[idRisorsa] = arg.Value
 			*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
 			fmt.Printf("Nodo: %d, %v\n", node.Id, node.Objects)
+			return nil
 		}
+	}
+
+	//se procedo, vuol dire che il nodo in questione non gestisce la risorsa. Proviamo a chiedere al predecessore.
+	client, err := rpc.DialHTTP("tcp", node.Predecessor)
+	if err != nil {
+		log.Fatal("Errore nodo AddObject: non riesco a contattare il predecessore", err)
+	}
+	resultPredecessor := "" // Inizializza myString con una stringa vuota
+
+	arg.PredOp = "add"
+	err = client.Call("OtherNode.AskPredecessor", arg, &resultPredecessor)
+	if err != nil {
+		log.Fatal("Errore nodo AddObject: non riesco a chiamare OtherNode.AskPredecessor ", err)
+	}
+
+	client.Close()
+
+	if resultPredecessor != "" { //se torna 0, ho concluso l'operazione.
+		*reply = resultPredecessor
+
+		return nil
+
 	} else {
 
 		isFound := false
@@ -283,30 +287,20 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 		}
 
 		var nodoContact string
-		/*
-			client, err := rpc.DialHTTP("tcp", RegistryFromInside)
-			if err != nil {
-				log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
-			}
-			err = client.Call("Registry.GiveNodeLookup", nodoContactId, &nodoContact)
-			if err != nil {
-				log.Fatal("Errore nodo AddObject: non riesco a chiamare Registry.GiveNodeLookup ", err)
-			}
-			//fmt.Printf("Devo contattare in AddObject -> %s \n", nodoContact)
 
-			client.Close()*/
 		if nodoContactId == sha_adapted(node.Successor) {
 			nodoContact = node.Successor
 		} else if nodoContactId == sha_adapted(node.Predecessor) {
 			nodoContact = node.Predecessor
 		} else {
+
 			client, err := rpc.DialHTTP("tcp", node.Successor)
 			if err != nil {
-				log.Fatal("Errore nodo SearchObject: non riesco a contattare il registry dall'interno  ", err)
+				log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
 			}
 			err = client.Call("OtherNode.GiveNodeLookup", nodoContactId, &nodoContact)
 			if err != nil {
-				log.Fatal("Errore nodo SearchObject: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+				log.Fatal("Errore nodo AddObject: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
 			}
 
 			client.Close()
@@ -314,7 +308,6 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 
 		client, err := rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
-			//fmt.Printf("Errore nodo AddObject con %s \n", nodoContact)
 			log.Fatal("Errore nodo AddObject: non riesco a contattare il nodo fornito dal registry  ", err)
 		}
 
@@ -328,6 +321,47 @@ func (t *OtherNode) AddObject(arg *Arg, reply *string) error {
 	}
 
 	return nil
+}
+
+func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo chiede al suo predecessore se è lui a gestire la risorsa.
+
+	idRisorsa := arg.Id
+	idPredecessor := sha_adapted(node.Predecessor)
+	idSuccessor := sha_adapted(node.Successor)
+	switch arg.PredOp {
+	case "add":
+		if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			if node.Objects[idRisorsa] != "" {
+				*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
+			} else {
+				node.Objects[idRisorsa] = arg.Value
+				*reply = fmt.Sprintf("Oggetto '%s' aggiunto con id: '%d'\n", arg.Value, idRisorsa)
+				fmt.Printf("Nodo: %d, %v\n", node.Id, node.Objects)
+			}
+
+		}
+	case "searchOrRemove":
+
+		if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			if node.Objects[idRisorsa] == "" { //se non c'è
+				*reply = "L'oggetto cercato non è presente.\n"
+			} else {
+				if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
+					*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è stato rimosso.\n", idRisorsa, node.Objects[idRisorsa])
+					delete(node.Objects, idRisorsa)
+					fmt.Printf("Nodo: %d, Objects: %v\n", node.Id, node.Objects)
+
+				} else {
+					*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è posseduto dal nodo '%d'.\n", idRisorsa, node.Objects[idRisorsa], node.Id)
+
+				}
+			}
+		}
+
+	}
+
+	return nil
+
 }
 
 /*
@@ -346,15 +380,36 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 			*reply = "L'oggetto cercato non è presente.\n"
 		} else {
 			if arg.Type { //se arg.Type == true, allora la ricerca l'ho fatta per rimuovere l'oggetto dal nodo.
-				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è stato rimosso.\n"
+				*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è stato rimosso.\n", idRisorsa, node.Objects[idRisorsa])
 				delete(node.Objects, idRisorsa)
 				fmt.Printf("Nodo: %d, Objects: %v\n", node.Id, node.Objects)
 
 			} else {
-				*reply = "L'oggetto con id '" + strconv.Itoa(idRisorsa) + "' e valore '" + node.Objects[idRisorsa] + "' è posseduto dal nodo '" + strconv.Itoa(node.Id) + "'.\n"
+				*reply = fmt.Sprintf("L'oggetto con id '%d' e valore '%s' è posseduto dal nodo '%d'.\n", idRisorsa, node.Objects[idRisorsa], node.Id)
 
 			}
 		}
+		return nil
+	}
+	//se procedo, vuol dire che il nodo in questione non gestisce la risorsa. Proviamo a chiedere al predecessore.
+	client, err := rpc.DialHTTP("tcp", node.Predecessor)
+	if err != nil {
+		log.Fatal("Errore nodo AddObject: non riesco a contattare il predecessore", err)
+	}
+	arg.PredOp = "searchOrRemove"
+	resultPredecessor := ""
+	err = client.Call("OtherNode.AskPredecessor", arg, &resultPredecessor)
+	if err != nil {
+		log.Fatal("Errore nodo AddObject: non riesco a chiamare OtherNode.AskPredecessor ", err)
+	}
+
+	client.Close()
+
+	if resultPredecessor != "" { //se torna 0, ho concluso l'operazione.
+		*reply = resultPredecessor
+
+		return nil
+
 	} else {
 
 		var nodoContactId int //qui mi salvo l'id del nodo da contattare
@@ -389,7 +444,7 @@ func (t *OtherNode) SearchObject(arg *Arg, reply *string) error {
 
 			client.Close()
 		}
-		fmt.Printf("Contatto [%d:%s]\n", nodoContactId, nodoContact)
+
 		client, err := rpc.DialHTTP("tcp", nodoContact)
 		if err != nil {
 			log.Fatal("Errore nodo SearchObject: non riesco a contattare il nodo trovato sulla FT  ", err)
@@ -428,11 +483,10 @@ func (t *OtherNode) GiveNodeLookup(idNodo int, ipNodo *string) error {
 }
 
 func scanRing(me *Node, stopChan <-chan struct{}) {
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 	neightbors := getNeighbors(me.Ip)
 	me.Successor = neightbors.Successor
 	me.Predecessor = neightbors.Predecessor
-	//var ask bool = false
 	me.Objects = getKeys(me)
 	if len(me.Objects) != 0 {
 		fmt.Println(me.Objects)
@@ -441,17 +495,10 @@ func scanRing(me *Node, stopChan <-chan struct{}) {
 	for {
 		select {
 		case <-stopChan:
-			fmt.Printf("Connessione interrotta correttamente.")
-			return
+			fmt.Printf("Connessione interrotta correttamente.\n")
+			os.Exit(0)
 		default:
 			time.Sleep(10 * time.Second)
-			/*if !ask {
-				me.Objects = getKeys(me)
-				if len(me.Objects) != 0 {
-					fmt.Println(me.Objects)
-				}
-				ask = true
-			}*/
 			Finger(me)
 
 		}
@@ -479,7 +526,6 @@ func Finger(me *Node) error {
 	for i := 2; i <= m; i++ {
 		// Calcola id + 2^(i-1) mod (2^m)
 		val := (id + (1 << (i - 1))) % (1 << m)
-		//fmt.Printf("valore modulo è %d\n", val)
 		if id == idSucc {
 			fingerTable[i] = id
 			//esempi per le ultime due condizioni   es: id 29, idSucc 2, val 31             //id: 29, idSucc 2, val 1
@@ -562,20 +608,12 @@ func main() {
 	me := newNode(ipPortString)
 	me.Id = sha_adapted(me.Ip)
 
-	/*neightbors := getNeighbors(me.Ip)
-	me.Successor = neightbors.Successor
-	me.Predecessor = neightbors.Predecessor*/
-
 	fmt.Printf("Io sono %d, Indirizzo IP:%s\n", me.Id, ipPortString)
 
 	othernode := new(OtherNode)
 	rpc.Register(othernode)
 	rpc.HandleHTTP()
 
-	/*me.Objects = getKeys(me)
-	if len(me.Objects) != 0 {
-		fmt.Println(me.Objects)
-	}*/
 	go scanRing(me, stopChan)
 
 	listener, err := net.Listen("tcp", ipPortString)
