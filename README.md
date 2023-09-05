@@ -102,23 +102,40 @@ Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items
 5. Avviare una nuova istanza, o mantenerne una precedentemente creata. (<i>nome di esempio: ec2).</i>  
 
 6. Da terminale (presso qualsiasi cartella), collegarsi all'istanza mediante:  
-   ``` ssh -i ~/.ssh/AWSKeypair.pem ec2-user@<ipv4_public_address>```    
-   (nb: l'indirizzo ipv4 pubblico è visibile nel pannello delle istanze di Amazon EC2).  
+   
+   ```
+   ssh -i ~/.ssh/AWSKeypair.pem ec2-user@<ipv4_public_address>   
+   ```
 
 7. Per copiare il progetto, recarsi nella directory <i>genitore</i> della directory contenente il progetto. (Se il progetto è nella folder 'Scaricati', posizionarsi in 'Scaricati').    
    Da terminale:    
-   ```scp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/```  
+   
+   ```
+   scp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/
+   ```
+   
    Quando il progetto è stato copiato, è possibile avviarlo con i comandi già visti:
-
-8. ```"docker-compose build"```,  
-
-9. ```"docker-compose up"```.  
-   Recandosi nella cartella <i>client</i>, si deve avviare il client come già visto in precedenza.  
-   Terminati i test, puliamo l'ambiente dei container tramite il comando:  
-   ```docker container prune```  
-   Per scollegarsi dall'istanza, usare il comando ```exit```
+   
+   - ```
+     docker-compose build
+     ```
+   
+   - ```
+     docker-compose up
+     ```
+   
+   - Recandosi nella cartella *client*, si deve avviare il client come già visto in precedenza.  
+     Terminati i test, puliamo l'ambiente dei container tramite il comando: 
+     
+     ```
+     docker container prune
+     ```
+     
+     Per scollegarsi dall'istanza, usare il comando `exit`
 
 # NOTE
 
-- E' possibile incorrere in collisioni durante la creazione dei container. Un nodo mappato su in identificativo già usato verrà chiuso. Il sistema funzionerà normalmente.
+- E' possibile incorrere in <b>collisioni</b> durante la creazione dei container.   
+  Un nodo mappato su in identificativo già usato verrà terminato.  
+  Il sistema funzionerà normalmente.  
   Se ciò si verifica durante l'avvio del nodo singolo, mediante lo stesso comando di avvio l'istanza verrà riavviata ed entrerà nel sistema (a meno di un'altra, ma più improbabile, collisione).
