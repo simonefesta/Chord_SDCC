@@ -1,11 +1,11 @@
-# Implementazione dell'algoritmo/protocollo di Chord
+## Implementazione dell'algoritmo/protocollo di Chord
 
 - Corso: Sistemi Distribuiti e Cloud Computing
 - Facoltà di Ingegneria Informatica Magistrale, Università di Roma Tor Vergata.
-- Ambiente di sviluppo: Linux, in particolare <i>Fedora Linux 38</i>. Testato con  <i>Docker Desktop 4.22.0</i> e  <i>GO version go1.20.6</i>.
+- Ambiente di sviluppo: Linux, in particolare <i>Fedora Linux 38</i>. Testato con  <i>Docker Desktop 4.22.0</i>, <i>GO version go1.20.6</i> e <i>Python 3.11.4 </i>.
 - Autore 👨‍💻: Simone Festa
 
-## Breve Descrizione
+## Breve introduzione del sistema
 
 Il seguente progetto riproduce una overlay network strutturata basata sul protocollo di Chord. Mediante un client, è possibile, passando per un server registry, memorizzare/ricercare/eliminare stringhe sui nodi componenti l'anello. La rimozione  <i>controllata </i> di un nodo è supportata totalmente. Viene gestito anche il <i>crash </i>di un nodo,  per consentire al sistema di rimanere consistente, senza però attuare un meccanismo di replicazione per mantenere le risorse del nodo caduto.
 
@@ -101,20 +101,21 @@ Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items
 
 5. Avviare una nuova istanza, o mantenerne una precedentemente creata. (<i>nome di esempio: ec2).</i>  
 
-6. Da terminale (presso qualsiasi cartella), collegarsi all'istanza mediante:  
+6. Da terminale (presso qualsiasi cartella), collegarsi all'istanza EC2 mediante il comando sottostante e confermare il collegamento con 'yes'. In questo terminale potremo avviare il sistema negli step successivi.  
    
    ```
    ssh -i ~/.ssh/AWSKeypair.pem ec2-user@<ipv4_public_address>   
    ```
 
-7. Per copiare il progetto, recarsi nella directory <i>genitore</i> della directory contenente il progetto. (Se il progetto è nella folder 'Scaricati', posizionarsi in 'Scaricati').    
+7. Per copiare il progetto in remoto, aprire una <i>nuova istanza del terminale</i> (il terminale nel punto 6 è infatti collegato in modo remoto ad AWS), recarsi nella directory <i>genitore</i> della directory contenente il progetto.
+   (Se il progetto è nella folder 'Scaricati', posizionarsi in 'Scaricati').    
    Da terminale:    
    
    ```
    scp -i ~/.ssh/AWSKeypair.pem -r Chord_SDCC ec2-user@<ipv4_public_address>:/home/ec2-user/
    ```
    
-   Quando il progetto è stato copiato, è possibile avviarlo con i comandi già visti:
+   Quando il progetto è stato copiato, è possibile avviarlo con i comandi già visti usando il terminale visto nel punto 6, che sarà collegato all'istanza di Amazon EC2):
    
    - ```
      docker-compose build
@@ -124,7 +125,9 @@ Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items
      docker-compose up
      ```
    
-   - Recandosi nella cartella *client*, si deve avviare il client come già visto in precedenza.  
+   - Con una nuova istanza terminale, collegato nello stesso modo esposto nel   
+     punto 6, recarsi nella cartella *client* del progetto remota ed avviare il client  
+     come già visto in precedenza.   
      Terminati i test, puliamo l'ambiente dei container tramite il comando: 
      
      ```
@@ -138,4 +141,4 @@ Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items
 - E' possibile incorrere in <b>collisioni</b> durante la creazione dei container.   
   Un nodo mappato su in identificativo già usato verrà terminato.  
   Il sistema funzionerà normalmente.  
-  Se ciò si verifica durante l'avvio del nodo singolo, mediante lo stesso comando di avvio l'istanza verrà riavviata ed entrerà nel sistema (a meno di un'altra, ma più improbabile, collisione).
+  Se ciò si verifica durante l'avvio del nodo singolo, mediante lo stesso comando di avvio l'istanza verrà riavviata ed entrerà nel sistema (a meno di un'altra, ma più improbabile, collisione). 

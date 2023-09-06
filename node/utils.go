@@ -107,11 +107,9 @@ func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo ch
 	idRisorsa := arg.Id
 	idPredecessor := sha_consistent(node.Predecessor)
 	idSuccessor := sha_consistent(node.Successor)
-	fmt.Printf("Sono il %d, contattato da %d, per vedere la risorsa %d\n", node.Id, idSuccessor, idRisorsa)
 	switch arg.PredOp {
 	case "add":
 		if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
-			fmt.Printf("AskPred - add, sono %d e dovrei gestire io la risorsa \n", node.Id)
 			if node.Objects[idRisorsa] != "" {
 				*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
 			} else {
@@ -124,7 +122,6 @@ func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo ch
 	case "searchOrRemove":
 
 		if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
-			fmt.Printf("AskPred - search, sono %d e dovrei gestire io la risorsa \n", node.Id)
 
 			if node.Objects[idRisorsa] == "" { //se non c'è
 				*reply = "L'oggetto cercato non è presente.\n"
@@ -175,10 +172,6 @@ func InterrogateFinger(arg *Arg, reply *string) string {
 
 	var nodoContactId int
 
-	/*if ((node.Id < idRisorsa) && (idRisorsa <= node.Finger[1])) {
-		nodoContactId = node.Finger[1]
-		isFound = true
-	} else {*/
 	idRisorsa := arg.Id
 	for i := 0; i < len(node.Finger)-1; i++ { //ispeziono FT
 
@@ -189,7 +182,6 @@ func InterrogateFinger(arg *Arg, reply *string) string {
 		}
 	}
 
-	//}
 	if !isFound { //se non trovo nulla, contatto sempre il nodo più lontano.
 		nodoContactId = node.Finger[len(node.Finger)-1]
 	}
