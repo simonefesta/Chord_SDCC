@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func sha_adapted(key string) int {
+func sha_consistent(key string) int {
 
 	m, err := ReadFromConfig() //leggo "m" dal json
 	if err != nil {
@@ -105,11 +105,13 @@ func ContactRegistryAliveNode(nodetocheck string, idnodetocheck int) int {
 func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo chiede al suo predecessore se è lui a gestire la risorsa.
 
 	idRisorsa := arg.Id
-	idPredecessor := sha_adapted(node.Predecessor)
-	idSuccessor := sha_adapted(node.Successor)
+	idPredecessor := sha_consistent(node.Predecessor)
+	idSuccessor := sha_consistent(node.Successor)
+	fmt.Printf("Sono il %d, contattato da %d, per vedere la risorsa %d\n", node.Id, idSuccessor, idRisorsa)
 	switch arg.PredOp {
 	case "add":
 		if (node.Id == idPredecessor && node.Id == idSuccessor) || (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			fmt.Printf("AskPred - add, sono %d e dovrei gestire io la risorsa \n", node.Id)
 			if node.Objects[idRisorsa] != "" {
 				*reply = fmt.Sprintf("L'oggetto con id: '%d' è già esistente!\n", idRisorsa)
 			} else {
@@ -122,6 +124,8 @@ func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo ch
 	case "searchOrRemove":
 
 		if (idRisorsa <= node.Id && idRisorsa > idPredecessor) || (idPredecessor > node.Id && (idRisorsa > idPredecessor || idRisorsa <= node.Id)) {
+			fmt.Printf("AskPred - search, sono %d e dovrei gestire io la risorsa \n", node.Id)
+
 			if node.Objects[idRisorsa] == "" { //se non c'è
 				*reply = "L'oggetto cercato non è presente.\n"
 			} else {
@@ -144,9 +148,9 @@ func (t *OtherNode) AskPredecessor(arg *Arg, reply *string) error { //un nodo ch
 }
 
 func (t *OtherNode) GiveNodeLookup(idNodo int, ipNodo *string) error {
-	if idNodo == sha_adapted(node.Successor) {
+	if idNodo == sha_consistent(node.Successor) {
 		*ipNodo = node.Successor
-	} else if idNodo == sha_adapted(node.Predecessor) {
+	} else if idNodo == sha_consistent(node.Predecessor) {
 		*ipNodo = node.Predecessor
 	} else {
 		client, err := rpc.DialHTTP("tcp", node.Successor)
@@ -162,5 +166,55 @@ func (t *OtherNode) GiveNodeLookup(idNodo int, ipNodo *string) error {
 	}
 
 	return nil
+
+}
+
+func InterrogateFinger(arg *Arg, reply *string) string {
+
+	isFound := false
+
+	var nodoContactId int
+
+	/*if ((node.Id < idRisorsa) && (idRisorsa <= node.Finger[1])) {
+		nodoContactId = node.Finger[1]
+		isFound = true
+	} else {*/
+	idRisorsa := arg.Id
+	for i := 0; i < len(node.Finger)-1; i++ { //ispeziono FT
+
+		if ((idRisorsa > node.Finger[i]) && (idRisorsa <= node.Finger[i+1])) || (node.Finger[i] > node.Finger[i+1] && idRisorsa <= node.Finger[i+1]) {
+			nodoContactId = node.Finger[i+1]
+			isFound = true
+			break
+		}
+	}
+
+	//}
+	if !isFound { //se non trovo nulla, contatto sempre il nodo più lontano.
+		nodoContactId = node.Finger[len(node.Finger)-1]
+	}
+
+	var nodoContact string
+
+	if nodoContactId == sha_consistent(node.Successor) { //Se l'ID del nodo da contattare è quello del mio predecessore o successore, già conosco i loro indirizzi.
+		nodoContact = node.Successor
+
+	} else if nodoContactId == sha_consistent(node.Predecessor) {
+		nodoContact = node.Predecessor
+
+	} else { //altrimenti effettuo lookup per ottenere l'indirizzo.
+
+		client, err := rpc.DialHTTP("tcp", node.Successor)
+		if err != nil {
+			log.Fatal("Errore nodo AddObject: non riesco a contattare il registry dall'interno  ", err)
+		}
+		err = client.Call("OtherNode.GiveNodeLookup", nodoContactId, &nodoContact)
+		if err != nil {
+			log.Fatal("Errore nodo AddObject: non riesco a chiamare OtherNode.GiveNodeLookup ", err)
+		}
+
+		client.Close()
+	}
+	return nodoContact
 
 }

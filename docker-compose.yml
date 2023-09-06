@@ -101,6 +101,19 @@ services:
     depends_on:
       - registry
 
+  node8:
+    build:
+      context: ./ 
+      dockerfile: ./DockerFiles/node/Dockerfile  
+    ports:
+      - "8012:8012"  # Mappa la porta 8005 del server del container all'host
+    environment:
+      - NODE_PORT=8012
+    networks:
+      - my_network
+    depends_on:
+      - registry
+
 networks:
   my_network:
     driver: bridge
