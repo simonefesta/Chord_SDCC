@@ -9,7 +9,8 @@
 
 Il seguente progetto riproduce una overlay network strutturata basata sul protocollo di Chord. Mediante un client, è possibile, passando per un server registry, memorizzare/ricercare/eliminare stringhe sui nodi componenti l'anello. La rimozione  <i>controllata </i> di un nodo è supportata totalmente. Viene gestito anche il <i>crash </i>di un nodo,  per consentire al sistema di rimanere consistente, senza però attuare un meccanismo di replicazione per mantenere le risorse del nodo caduto.
 
-![ring](https://github.com/simonefesta/Chord_SDCC/assets/55951548/04af223b-d756-4e77-b3b5-c74ed7ffe8d4)
+![ring](https://github.com/simonefesta/Chord_SDCC/assets/55951548/96bae32b-4a10-4ca4-b375-c4e4138bb9b3)
+
 
 # Esecuzione del programma
 
