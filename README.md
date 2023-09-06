@@ -11,7 +11,6 @@ Il seguente progetto riproduce una overlay network strutturata basata sul protoc
 
 ![ring](https://github.com/simonefesta/Chord_SDCC/assets/55951548/96bae32b-4a10-4ca4-b375-c4e4138bb9b3)
 
-
 # Esecuzione del programma
 
 ## Start-up del sistema
@@ -51,14 +50,13 @@ Questo permette la creazione di un numero definito di container e di un server r
 ## Avvio del client
 
 Aprendo una nuova istanza del terminale, e sempre partendo dalla directory   
-principale <i>Chord_SDCC</i>, è possibile avviare il client recandosi nella cartella  
- <i>client</i> mediante comando :
+principale <i>Chord_SDCC</i>, è possibile avviare il client recandosi nella cartella  <i>client</i> mediante comando:
 
 ```
 cd client
 ```
 
-e procedere all'avvio mediante  
+e procedere all'avvio mediante:  
 
 ```
 go run client.go
@@ -69,7 +67,7 @@ per avere un'interfaccia per la gestione dell'anello.
 ## Avvio di un nodo dopo lo start-up
 
 E' supportata l'aggiunta postuma di un nodo singolarmente.  
-Su un nuovo terminale, localizzandoci presso la directory principale <i>Chord_SDCC</i>,  
+Su un nuovo terminale, localizzandoci presso la directory principale <i>Chord_SDCC</i>,
 basterà eseguire il comando:
 
 ```
@@ -85,7 +83,8 @@ Ad esempio:
 
 # Esecuzione del programma con AWS - EC2
 
-<b>Disclaimer</b>: l'istanza richiede l'installazione di <i>Docker, Golang</i> e <i>Python</i>.   
+<b>Disclaimer</b>:  
+L'istanza richiede l'installazione di <i>Docker, Golang</i> e <i>Python</i>.   
 Per accedere ai servizi Amazon EC2 sono richieste delle credenziali per AWS.   
 La guida fa uso delle credenziali memorizzate nel file ```AWSKeypair.pem``` poste nella cartella ```.ssh``` di Linux.
 
