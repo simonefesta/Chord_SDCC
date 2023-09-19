@@ -141,4 +141,5 @@ Recarsi sul sito: https://awsacademy.instructure.com/courses/28710/modules/items
 - E' possibile incorrere in <b>collisioni</b> durante la creazione dei container.   
   Un nodo mappato su in identificativo già usato verrà terminato.  
   Il sistema funzionerà normalmente.  
-  Se ciò si verifica durante l'avvio del nodo singolo, mediante lo stesso comando di avvio l'istanza verrà riavviata ed entrerà nel sistema (a meno di un'altra, ma più improbabile, collisione). 
+  Se ciò si verifica durante l'avvio del nodo singolo, è necessario avviare lo script come se si stesse creando un altro nodo, quindi col suffisso "1", "2", etc... (vedi sezione "Avvio dopo lo start-up").
+  Questo perchè rieseguire lo script senza suffissi porterà al build di un nodo con stesso indirizzo ip e porta, e quindi stesso identificato che ha già causato la collisione.
