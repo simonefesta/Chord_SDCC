@@ -176,7 +176,7 @@ func InterrogateFinger(arg *Arg, reply *string) string {
 	for i := 0; i < len(node.Finger)-1; i++ { //ispeziono FT
 
 		if ((idRisorsa > node.Finger[i]) && (idRisorsa <= node.Finger[i+1])) || (node.Finger[i] > node.Finger[i+1] && idRisorsa <= node.Finger[i+1]) {
-			nodoContactId = node.Finger[i+1]
+			nodoContactId = node.Finger[i] //il nodo più lontano che non eccede la risorsa.
 			isFound = true
 			break
 		}
